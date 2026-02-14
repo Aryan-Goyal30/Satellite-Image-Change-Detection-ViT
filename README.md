@@ -118,6 +118,12 @@ The system will generate:
 
 ---
 
+## Sample Output
+
+![Change Detection Result](outputs/result.png)
+
+---
+
 ## Applications
 
 - Urban expansion monitoring  
