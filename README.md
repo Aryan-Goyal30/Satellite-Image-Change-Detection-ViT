@@ -8,7 +8,7 @@ A deep learning–based framework for detecting and quantifying spatial changes 
 
 This project implements a transformer-based approach for satellite image change detection. By extracting patch-level embeddings from temporal image pairs and computing feature differences, the system identifies and visualizes environmental and structural changes.
 
-The framework produces both visual and quantitative outputs to support urban and environmental monitoring applications.
+The framework generates both visual and quantitative outputs to support urban and environmental monitoring applications.
 
 ---
 
@@ -53,9 +53,38 @@ Satellite-Image-Change-Detection-ViT/
 
 ---
 
-## Installation
+## Installation & Usage
 
-Install required dependencies:
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Aryan-Goyal30/Satellite-Image-Change-Detection-ViT.git
+cd Satellite-Image-Change-Detection-ViT
+```
+
+Or download the repository as a ZIP file and extract it.
+
+---
+
+### 2. Create and Activate a Virtual Environment (Recommended)
+
+```bash
+python -m venv venv
+```
+
+**Windows**
+```bash
+venv\Scripts\activate
+```
+
+**Mac/Linux**
+```bash
+source venv/bin/activate
+```
+
+---
+
+### 3. Install Dependencies
 
 ```bash
 pip install torch torchvision timm matplotlib numpy pillow
@@ -63,13 +92,18 @@ pip install torch torchvision timm matplotlib numpy pillow
 
 ---
 
-## Usage
+### 4. Add Input Images
 
-1. Place the satellite image pair inside the `images/` directory:
-   - `before.png`
-   - `after.png`
+Place your satellite image pair inside the `images/` folder with the filenames:
 
-2. Run the program:
+```
+before.png
+after.png
+```
+
+---
+
+### 5. Run the Project
 
 ```bash
 python main.py
@@ -77,10 +111,9 @@ python main.py
 
 The system will generate:
 
-- Before and After image visualization  
-- Patch-level change heatmap  
-- Change overlay map  
-- Multi-class environmental map  
+- Change heatmap  
+- Visual overlay  
+- Multi-class environmental change map  
 - Percentage of area changed  
 
 ---
