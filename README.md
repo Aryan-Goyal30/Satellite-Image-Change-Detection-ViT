@@ -129,7 +129,7 @@ The system will generate:
 
 ## Author
 
-Aryan Goyal  
+Aryan Goyal 
 B.Tech – Computer Science and Engineering  
 Manipal University Jaipur  
 
