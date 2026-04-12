@@ -3,6 +3,7 @@ Satellite Image Change Detection — Vision Transformer (ViT)
 Main System: Change Detection + Multi-Class Map + Per-Class Bar Chart
 
 Project: Satellite Image Change Detection using Vision Transformer
+Author: Aryan Goyal(2427030332) and Aryan Tyagi(2427030344)
 """
 
 import torch
