@@ -34,8 +34,38 @@ the supervised model can be compared against the starting point.
 ## Results
 
 <!-- RESULTS:START -->
-*Populated by `python -m src.eval.evaluate` — see
-`outputs/results/evaluation.json`.*
+**LEVIR-CD test split** — 2,048 tiles of 256x256, ground truth
+from the official annotations. Threshold **tau = 0.625**,
+selected on the validation split and applied to test unchanged.
+
+| Metric (change class) | Test | Validation |
+|---|---|---|
+| **Precision** | **0.9060** | 0.8945 |
+| **Recall**    | **0.8829** | 0.9096 |
+| **F1**        | **0.8943** | 0.9020 |
+| **IoU**       | **0.8088** | 0.8215 |
+| Average precision | 0.9400 | 0.9525 |
+| Pixel accuracy | 0.9894 | 0.9917 |
+
+Confusion (test, pixels): TP 6,037,056 · FP 626,723 · FN 800,348 · TN 126,753,601
+
+> **Pixel accuracy is reported only to show that it is uninformative.** About
+> 94.9% of test pixels are unchanged, so a model that
+> predicts "no change" everywhere scores roughly that accuracy at F1 = 0.
+> Precision, Recall, F1 and IoU are computed for the **change class** only.
+
+> **Threshold transfer.** The test-optimal threshold would have been
+> 0.590 (F1 0.8944). We do not use it;
+> the gap of +0.0001 F1 is the honest cost of selecting the
+> threshold on validation, and is reported rather than hidden.
+
+Model `siamese-unet-resnet34` v1.0.0 · encoder `resnet34` ·
+best epoch 44 (best) of 50 run · trained on NVIDIA GeForce RTX 5060 Laptop GPU · training time 0:42:01 ·
+test inference 15.5s for 2,048 tiles.
+
+![Metrics](outputs/figures/fig3_metrics.png)
+![Qualitative](outputs/figures/fig2_qualitative_success.png)
+![Failures](outputs/figures/fig4_failures.png)
 <!-- RESULTS:END -->
 
 ---

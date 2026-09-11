@@ -28,6 +28,27 @@ def get_engine(ckpt):
     return ChangeEngine(ckpt)
 
 
+@st.cache_data
+def list_tiles(label_dir, only_with_change, min_frac=0.05, limit=300):
+    """Test tiles for the demo picker.
+
+    The filter looks at the GROUND-TRUTH label only (>= 5% change pixels), never
+    at model output, so it selects tiles where there is something to detect -
+    not tiles where the model happens to do well.
+    """
+    names = sorted(os.listdir(label_dir))
+    if not only_with_change:
+        return names[:limit]
+    out = []
+    for n in names:
+        m = np.array(Image.open(os.path.join(label_dir, n)).convert("L")) > 127
+        if m.mean() >= min_frac:
+            out.append(n)
+            if len(out) >= limit:
+                break
+    return out
+
+
 st.title("Earth Guardian")
 st.caption("Built-Environment Change Monitor - structural / building change detection")
 
@@ -64,8 +85,12 @@ if src == "Bundled example":
     tiles = os.path.join(ROOT, "data", "levir_cd_tiles", "test", "A")
     demo = os.path.join(ROOT, "images")
     if os.path.isdir(tiles) and os.listdir(tiles):
-        names = sorted(os.listdir(tiles))[:200]
-        pick = st.selectbox("LEVIR-CD test tile", names)
+        only_change = st.checkbox(
+            "Only tiles whose ground truth contains change (>= 5% of pixels)", value=True,
+            help="Filters on the ground-truth label, not on model output.")
+        names = list_tiles(os.path.join(ROOT, "data", "levir_cd_tiles", "test", "label"),
+                           only_change)
+        pick = st.selectbox("LEVIR-CD test tile (held-out test split)", names)
         before = os.path.join(tiles, pick)
         after = os.path.join(ROOT, "data", "levir_cd_tiles", "test", "B", pick)
         gt_path = os.path.join(ROOT, "data", "levir_cd_tiles", "test", "label", pick)
