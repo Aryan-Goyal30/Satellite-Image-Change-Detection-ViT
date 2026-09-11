@@ -91,9 +91,13 @@ class ChangeEngine:
         # pad so every position is covered by a full tile
         ph = max(t, int(np.ceil(max(H - t, 0) / stride)) * stride + t)
         pw = max(t, int(np.ceil(max(W - t, 0) / stride)) * stride + t)
+        # 'symmetric' rather than 'reflect': when the image is smaller than one
+        # tile the pad width exceeds the dimension, which older numpy rejects in
+        # reflect mode. The padded margin is cropped off again below, so the
+        # choice only has to be safe, not principled.
         pad = ((0, ph - H), (0, pw - W), (0, 0))
-        a_p = np.pad(a_np, pad, mode="reflect")
-        b_p = np.pad(b_np, pad, mode="reflect")
+        a_p = np.pad(a_np, pad, mode="symmetric")
+        b_p = np.pad(b_np, pad, mode="symmetric")
 
         acc = np.zeros((ph, pw), dtype=np.float32)
         wsum = np.zeros((ph, pw), dtype=np.float32)
