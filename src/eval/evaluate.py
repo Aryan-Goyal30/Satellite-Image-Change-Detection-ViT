@@ -8,7 +8,7 @@ Protocol (this matters for defensibility):
      (the LEVIR-CD convention) - see src/eval/metrics.py.
 
 Usage:
-    python -m src.eval.evaluate --checkpoint checkpoints/siamese_unet_r18_best.pt
+    python -m src.eval.evaluate --checkpoint checkpoints/siamese_unet_r34_best.pt
 """
 import argparse
 import json
@@ -32,7 +32,7 @@ RESULTS = os.path.join(ROOT, "outputs", "results")
 
 def load_model(ckpt_path, device):
     ck = torch.load(ckpt_path, map_location=device, weights_only=False)
-    model = build_model(ck.get("encoder", "resnet18"), pretrained=False).to(device)
+    model = build_model(ck.get("encoder", "resnet34"), pretrained=False).to(device)
     model.load_state_dict(ck["model_state"])
     model.eval()
     return model, ck
@@ -61,7 +61,7 @@ def run_split(model, split, device, batch_size, workers, threshold, amp, tiles_r
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tiles", default=None, help="override tile root (default data/levir_cd_tiles)")
-    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r18_best.pt")
+    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r34_best.pt")
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--amp", action="store_true", default=True)
