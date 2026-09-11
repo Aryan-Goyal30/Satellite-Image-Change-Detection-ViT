@@ -141,7 +141,9 @@ function Format-Span { param([TimeSpan]$t)
 function Show-Snapshot {
     $log  = Find-Log -Explicit $LogPath
     $proc = Get-TrainProcess
-    $rows = Read-EpochRows -Path $log
+    # @() matters: PowerShell unrolls a one-element array into a bare object,
+    # whose .Count is $null in 5.1 - which made epoch 1 look like "no epochs".
+    $rows = @(Read-EpochRows -Path $log)
     $ck   = Read-Checkpoint -Path $Checkpoint
 
     if (-not $Once) { Clear-Host }
@@ -153,7 +155,9 @@ function Show-Snapshot {
     # ---- process / elapsed ----
     $elapsed = $null
     if ($proc) {
-        $start = [Management.ManagementDateTimeConverter]::ToDateTime($proc.CreationDate)
+        # Get-CimInstance already returns a DateTime; only legacy WMI gives a DMTF string.
+        $start = $proc.CreationDate
+        if ($start -is [string]) { $start = [Management.ManagementDateTimeConverter]::ToDateTime($start) }
         $elapsed = (Get-Date) - $start
         Write-Host ("  status      : RUNNING (PID {0}, started {1:HH:mm:ss})" -f $proc.ProcessId, $start) -ForegroundColor Green
     } else {
@@ -178,8 +182,7 @@ function Show-Snapshot {
         Write-Host ("  best val F1 : {0:N4}  (epoch {1})" -f $bestRow.F1, $bestRow.Epoch) -ForegroundColor Green
         Write-Host ("  time/epoch  : {0:N0}s  (mean of {1} logged epochs)" -f $avgSec, $rows.Count)
     } else {
-        Write-Host "  epoch       : no epoch lines flushed to the log yet" -ForegroundColor DarkYellow
-        Write-Host "                (the launcher pipeline buffers ~4KB; checkpoint below is fresher)"
+        Write-Host "  epoch       : no completed epoch in the log yet" -ForegroundColor DarkYellow
     }
 
     # ---- checkpoint (fresher than the log) ----
