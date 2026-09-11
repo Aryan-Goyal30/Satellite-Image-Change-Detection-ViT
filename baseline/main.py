@@ -17,7 +17,7 @@ import numpy as np
 import os
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root (this script lives in baseline/)
 before_path = os.path.join(BASE_DIR, "images", "before1.png")
 after_path  = os.path.join(BASE_DIR, "images", "after1.png")
 
@@ -261,8 +261,8 @@ fig.suptitle(
 )
 
 # ── Save ──
-os.makedirs(os.path.join(BASE_DIR, "outputs"), exist_ok=True)
-out_path = os.path.join(BASE_DIR, "outputs", "output_vit_result.png")
+os.makedirs(os.path.join(BASE_DIR, "outputs", "baseline"), exist_ok=True)
+out_path = os.path.join(BASE_DIR, "outputs", "baseline", "output_vit_result.png")
 plt.savefig(out_path, dpi=150, bbox_inches="tight", facecolor=BG)
 print(f"Output saved → {out_path}")
 plt.show()

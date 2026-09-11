@@ -1,198 +1,202 @@
-# Satellite Image Change Detection using Vision Transformer (ViT)
+# Earth Guardian — Built-Environment Change Monitor
 
-A deep learning–based framework for detecting and quantifying spatial changes between multi-temporal satellite images using a pretrained Vision Transformer (ViT), with a side-by-side CNN vs ViT comparison to justify model selection.
+Supervised satellite change detection: given two co-located high-resolution
+optical images of the same place at different dates, detect and localize
+**structural (building) change**, quantify it, and visualize it against ground
+truth.
 
----
-
-## Sample Outputs
-
-### Main Result — ViT Change Detection
-![ViT Result](outputs/output_vit_result.png)
-
-### Model Comparison — CNN vs ViT
-![CNN vs ViT](outputs/output_cnn_vs_vit.png)
-
----
-
-## Overview
-
-This project implements a transformer-based approach for satellite image change detection. By extracting patch-level embeddings from temporal image pairs and computing feature differences, the system identifies and visualizes environmental and structural changes.
-
-A separate comparison script (`cnn_compare.py`) runs both ResNet-50 (CNN) and ViT on the same image pair to empirically demonstrate why ViT is the better choice for this task.
+> **Scope — read this first.**
+> The trained model detects **building construction and demolition** in
+> co-located optical imagery at roughly 0.3–1.0 m/px. It is trained and
+> evaluated on **LEVIR-CD** (Texas, USA, 2002–2018).
+> It does **not** detect floods, fires, deforestation, or snow/ice change, and
+> it has not been validated on imagery from other sensors, other regions, or
+> coarser resolutions. See [Limitations](#limitations).
 
 ---
 
-## Key Features
+## Project stages
 
-- Patch-level feature extraction using pretrained Vision Transformer (`vit_base_patch16_224`)
-- 14×14 change heatmap with `hot` colormap and colorbar
-- Visual red overlay highlighting detected changed regions
-- Rule-based multi-class environmental categorization:
-  - 🔵 Flood
-  - 🟢 Vegetation Loss
-  - 🟡 New Construction
-  - 🔴 Fire / Burned Area
-  - ⚪ Snow / Ice Change
-- Per-class percentage bar chart for each change category
-- Adaptive thresholding for honest, conservative percentage estimation
-- CNN (ResNet-50) vs ViT comparison script with 4-row visual report
-
----
-
-## Why ViT over CNN?
-
-| Metric | CNN (ResNet-50) | ViT |
+| Stage | What it is | Status |
 |---|---|---|
-| Spatial Map Resolution | 7×7 (49 patches) | 14×14 (196 patches) |
-| Spatial Detail | Low | 4× Higher |
-| Context Mechanism | Local convolutions | Global self-attention |
-| Pooling Layers | 5 (compresses detail) | None |
+| **Stage 0** — `baseline/` | Frozen ImageNet ViT-B/16 feature distance + RGB heuristics. The original POC. **No training, no ground truth, no metrics.** Kept as an unsupervised control arm. | preserved, not the product |
+| **Stage 1** — `src/` | Supervised Siamese U-Net trained on LEVIR-CD, evaluated against real ground-truth masks with Precision / Recall / F1 / IoU. | **current** |
+| Stage 2 | Cross-dataset generalization (WHU-CD, S2Looking), semantic change types | planned |
+| Stage 3 | Imagery provider (location + date search), georeferenced outputs | planned |
 
-CNN applies 5 pooling layers, compressing the spatial map to just 49 locations. ViT preserves all 196 patch tokens with no pooling, giving 4× finer spatial resolution and global context — making it better suited for satellite imagery where changes span large areas.
-
----
-
-## Technology Stack
-
-- Python
-- PyTorch
-- timm (Vision Transformer models)
-- torchvision (ResNet-50 for comparison)
-- NumPy
-- Matplotlib
-- Pillow (PIL)
+**Stage 0 is deliberately retained.** Its heuristic "Flood / Fire / Vegetation /
+Snow" classes are *not* a trained capability and are not part of the product
+path — they are RGB brightness thresholds. They remain in `baseline/` only so
+the supervised model can be compared against the starting point.
 
 ---
 
-## Project Structure
+## Results
 
-```
-Satellite-Image-Change-Detection-ViT/
-│
-├── images/
-│   ├── before.png          ← your input before image
-│   └── after.png           ← your input after image
-│
-├── outputs/
-│   ├── output_vit_result.png
-│   └── output_cnn_vs_vit.png
-│
-├── main.py                 ← main ViT change detection system
-├── cnn_compare.py          ← CNN vs ViT comparison (justification)
-├── requirements.txt
-└── README.md
-```
+<!-- RESULTS:START -->
+*Populated by `python -m src.eval.evaluate` — see
+`outputs/results/evaluation.json`.*
+<!-- RESULTS:END -->
 
 ---
 
-## Installation & Usage
+## Quick start
 
-### 1. Clone the Repository
+### 1. Environment
 
-```bash
-git clone https://github.com/Aryan-Goyal30/Satellite-Image-Change-Detection-ViT.git
-cd Satellite-Image-Change-Detection-ViT
-```
-
-### 2. Create and Activate a Virtual Environment (Recommended)
+RTX 50-series (Blackwell) requires a CUDA 12.8+ build of PyTorch:
 
 ```bash
-python -m venv venv
-```
-
-**Windows**
-```bash
-venv\Scripts\activate
-```
-
-**Mac/Linux**
-```bash
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+python -m venv .venv312                       # Python 3.12 recommended
+.venv312\Scripts\activate                     # Windows
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
 
-### 4. Add Input Images
-
-Place your satellite image pair inside the `images/` folder:
-
-```
-images/before.png
-images/after.png
-```
-
-### 5. Run the Main System
+### 2. Data
 
 ```bash
-python main.py
+python scripts/download_levir.py     # ~2.5 GB, resumable, official split
+python scripts/prepare_tiles.py      # 1024^2 scenes -> 256^2 tiles
 ```
 
-Generates:
-- `outputs/output_vit_result.png` — 6-panel dark-theme result with per-class bar chart
+See [docs/DATASET.md](docs/DATASET.md) for the directory layout and the
+no-leakage argument.
 
-### 6. Run CNN vs ViT Comparison (Optional)
+### 3. Train
 
 ```bash
-python cnn_compare.py
+python -m src.train.train --epochs 40 --batch-size 16
 ```
 
-Generates:
-- `outputs/output_cnn_vs_vit.png` — 4-row comparison report justifying ViT selection
+Checkpoints the best model **by validation F1** to
+`checkpoints/siamese_unet_r18_best.pt`. Loss is a poor selection signal here
+because it is dominated by the ~95% background class.
 
----
+### 4. Evaluate
 
-## Output Description
+```bash
+python -m src.eval.evaluate
+```
 
-### main.py output (`output_vit_result.png`)
-| Panel | Description |
+Selects the operating threshold on **validation**, then applies it unchanged to
+**test**. Writes `outputs/results/evaluation.json`.
+
+### 5. Figures
+
+```bash
+python -m src.viz.figures
+```
+
+Writes to `outputs/figures/`:
+
+| File | Contents |
 |---|---|
-| Before Image | Original pre-event satellite image |
-| After Image | Post-event satellite image |
-| ViT Heatmap | 14×14 patch-level change intensity (hot colormap) |
-| ViT Overlay | Red-highlighted changed regions on before image |
-| Multi-Class Map | Color-coded environmental change categories |
-| Per-Class Bar Chart | Horizontal bar chart showing % area per class |
+| `fig1_before_after.png` | Before \| After |
+| `fig2_qualitative_success.png` | Before \| After \| Ground Truth \| Prediction \| Error map |
+| `fig3_metrics.png` | Precision / Recall / F1 / IoU + PR curve |
+| `fig4_failures.png` | Representative **failure** cases |
 
-### cnn_compare.py output (`output_cnn_vs_vit.png`)
-| Row | Description |
-|---|---|
-| Row 1 | Original images + stats overview box |
-| Row 2 | CNN 7×7 heatmap vs ViT 14×14 heatmap |
-| Row 3 | CNN overlay vs ViT overlay with explanation |
-| Row 4 | % changed bar chart + patch count + final verdict |
+### 6. Inference
 
----
+```bash
+python predict.py --before images/before1.png --after images/after1.png
+```
 
-## Notes on Percentage Detection
+Writes a mask, probability map, overlay and a structured `result.json`.
 
-This project uses **adaptive thresholding**: only patches with change intensity greater than `mean + 1.5 × std` are counted as changed. Since the model uses pretrained ImageNet weights (not fine-tuned on satellite data), conservative results of 0.5–10% are expected and valid. Even detecting 0.5% change in a satellite image is meaningful.
+### 7. Demo UI
+
+```bash
+streamlit run app.py
+```
 
 ---
 
-## Applications
+## The structured result
 
-- Urban expansion monitoring
-- Environmental change detection
-- Disaster impact assessment (floods, wildfires)
-- Land-use transformation analysis
-- Deforestation and vegetation loss tracking
+The JSON is the product's actual interface; every visual is a renderer over it.
+
+```json
+{
+  "model":   {"name": "siamese-unet-resnet18", "version": "1.0.0",
+              "trained_on": "LEVIR-CD", "val_f1": 0.0,
+              "capability": "structural / building change detection"},
+  "input":   {"height": 1024, "width": 1024, "gsd_m": null},
+  "params":  {"threshold": 0.5, "min_area_px": 32, "tile": 256, "overlap": 64},
+  "summary": {"changed_pixels": 0, "total_pixels": 1048576,
+              "changed_area_pct": 0.0, "n_regions": 0,
+              "mean_confidence": 0.0, "changed_area_m2": null},
+  "regions": [{"id": 1, "area_px": 0, "bbox_xywh": [0,0,0,0],
+               "centroid_xy": [0,0]}]
+}
+```
+
+`changed_area_m2` is `null` unless a real `--gsd-m` is supplied. LEVIR-CD PNGs
+carry no georeferencing, so reporting ground area would be fabricated.
 
 ---
 
-## Author
+## Method
 
-**Aryan Goyal** (2427030332)
-B.Tech – Computer Science and Engineering
-Manipal University Jaipur
+**Model.** Siamese U-Net. One ImageNet-pretrained ResNet-18 encoder processes
+both dates with **shared weights**. At each of five scales the two feature maps
+are fused as `conv1x1(concat[|f_a − f_b|, f_a + f_b])` — the difference carries
+the change signal, the sum carries scene context. A U-Net decoder returns one
+logit per pixel at full input resolution. 15.03 M parameters.
 
-Supervised by: Dr. Ajay Kumar
+**Loss.** `0.5 · BCE(pos_weight) + 0.5 · (1 − Dice)`. LEVIR-CD is ~95%
+unchanged pixels; plain BCE collapses to predicting "no change".
+
+**Inference.** Images larger than 256×256 are processed with overlapping tiles
+blended by a 2-D Hann window, so full scenes come back without tile seams.
+
+**Evaluation.** TP/FP/FN/TN are accumulated **globally** over a split, not
+averaged per image — the LEVIR-CD convention. Per-image averaging inflates
+scores because empty tiles produce degenerate per-image F1.
+
+Full rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## License
+## Limitations
 
-This project is developed for academic and research purposes.
+- **Buildings only.** Trained on LEVIR-CD, which annotates building change.
+  Vegetation, water, fire and snow change are not represented in the labels and
+  are not detected.
+- **One geography.** All training data is from 20 regions in Texas, USA.
+  Generalization to other regions and sensors is **untested** as of Stage 1.
+- **Co-registration is assumed.** LEVIR-CD is pre-registered. There is no
+  registration step in the current pipeline, so misaligned inputs will produce
+  false positives.
+- **No georeferencing.** Outputs are in pixel coordinates. No CRS, no m².
+- **Single architecture, single seed.** No architecture comparison and no
+  seed-variance study has been run yet; differences smaller than seed noise
+  cannot be claimed.
+
+---
+
+## Repository layout
+
+```
+baseline/          Stage 0 POC (frozen ViT + RGB heuristics) - preserved
+scripts/           dataset download + tiling
+src/data/          LEVIR-CD dataset and augmentation
+src/models/        Siamese U-Net
+src/train/         loss + training loop
+src/eval/          metrics + evaluation protocol
+src/inference/     change-analysis engine (product core)
+src/viz/           presentation figures
+predict.py         CLI
+app.py             Streamlit demo
+docs/              architecture + dataset notes
+```
+
+---
+
+## Authors
+
+Aryan Goyal (2427030332) and Aryan Tyagi (2427030344)
+B.Tech CSE, Manipal University Jaipur — supervised by Dr. Ajay Kumar
+
+Academic and research use. LEVIR-CD imagery is subject to Google Earth terms.
