@@ -203,6 +203,14 @@ Full rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **Single architecture, single seed.** No architecture comparison and no
   seed-variance study has been run yet; differences smaller than seed noise
   cannot be claimed.
+- **Small and edge-cut structures.** The weakest test tiles are small,
+  isolated rural buildings that are missed entirely, and buildings cut off
+  by the 256x256 tile boundary (see `outputs/figures/fig4_failures.png`).
+- **Checkpoint vs threshold selection.** The checkpoint is chosen by
+  validation F1 at threshold 0.5, while evaluation selects the threshold on
+  validation. Both use validation data only, so the test set is untouched,
+  but they are different criteria. The largest disagreement observed during
+  training was about 0.001 F1.
 
 ---
 

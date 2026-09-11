@@ -1,7 +1,7 @@
 """Train the Siamese U-Net change detector on LEVIR-CD tiles.
 
 Usage:
-    python -m src.train.train --epochs 40 --batch-size 16
+    python -m src.train.train --epochs 50 --batch-size 32 --workers 4
 
 Checkpoints the best model by VALIDATION F1 (not by loss - loss is dominated by
 the background class and is a poor model-selection signal here).
