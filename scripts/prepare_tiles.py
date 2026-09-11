@@ -29,22 +29,56 @@ SPLITS = ("train", "val", "test")
 SUBDIRS = ("A", "B", "label")
 
 
-def find_split_dir(split):
-    """LEVIR mirrors sometimes nest as <root>/<split> or <root>/LEVIR-CD/<split>."""
+def resolve_split(split):
+    """Locate a split's images and return (source_dir, filenames).
+
+    Two layouts are supported, because LEVIR-CD mirrors differ:
+
+      nested : <root>/<split>/{A,B,label}/*.png
+      flat   : <root>/{A,B,label}/<split>_*.png     <-- the HF mirror we use
+
+    In the FLAT layout all three splits share one directory and the official
+    split is encoded in the filename prefix (train_*, val_*, test_*). That
+    prefix is the official assignment shipped with the dataset, so selecting on
+    it reproduces the official 445/64/128 split exactly - it does not invent one.
+    """
+    # nested layout
     for cand in (os.path.join(SRC, split), os.path.join(SRC, "LEVIR-CD", split)):
         if all(os.path.isdir(os.path.join(cand, s)) for s in SUBDIRS):
-            return cand
-    return None
+            names = sorted(f for f in os.listdir(os.path.join(cand, "A"))
+                           if f.lower().endswith(".png"))
+            if names:
+                return cand, names
+
+    # flat layout, split taken from the filename prefix
+    if all(os.path.isdir(os.path.join(SRC, s)) for s in SUBDIRS):
+        names = sorted(f for f in os.listdir(os.path.join(SRC, "A"))
+                       if f.lower().endswith(".png")
+                       and f.lower().startswith(split + "_"))
+        if names:
+            return SRC, names
+
+    return None, []
+
+
+EXPECTED_SCENES = {"train": 445, "val": 64, "test": 128}
 
 
 def tile_split(split, tile):
-    src = find_split_dir(split)
-    if src is None:
+    src, names = resolve_split(split)
+    if src is None or not names:
         raise SystemExit(
-            f"Could not find '{split}' with A/B/label under {SRC}.\n"
+            f"Could not find images for split '{split}' under {SRC}.\n"
+            f"Expected either {SRC}\\{split}\\{{A,B,label}}\\*.png\n"
+            f"or {SRC}\\{{A,B,label}}\\{split}_*.png\n"
             f"Run: python scripts/download_levir.py"
         )
-    names = sorted(f for f in os.listdir(os.path.join(src, "A")) if f.lower().endswith(".png"))
+    exp = EXPECTED_SCENES[split]
+    if len(names) != exp:
+        print(f"  !! WARNING: {split} has {len(names)} scenes, official split "
+              f"has {exp}. Results will not be comparable to published numbers.")
+    else:
+        print(f"  {split}: {len(names)} scenes (matches official split)")
     for s in SUBDIRS:
         os.makedirs(os.path.join(DST, split, s), exist_ok=True)
 
@@ -104,7 +138,24 @@ def main():
     ap.add_argument("--tile", type=int, default=256)
     args = ap.parse_args()
 
-    stats = {"tile_size": args.tile, "splits": {}}
+    # --- leakage check BEFORE doing any work -------------------------------
+    # Assert the three splits are disjoint at the scene level. Tiles inherit
+    # their scene's split, so disjoint scenes => disjoint tiles => no leakage.
+    scene_sets = {s: set(resolve_split(s)[1]) for s in SPLITS}
+    for i, a in enumerate(SPLITS):
+        for b in SPLITS[i + 1:]:
+            overlap = scene_sets[a] & scene_sets[b]
+            if overlap:
+                raise SystemExit(
+                    f"LEAKAGE: {len(overlap)} scenes appear in both '{a}' and "
+                    f"'{b}', e.g. {sorted(overlap)[:5]}. Refusing to continue.")
+    print(f"leakage check: train/val/test scene sets are disjoint "
+          f"({'/'.join(str(len(scene_sets[s])) for s in SPLITS)} scenes)\n")
+
+    stats = {"tile_size": args.tile, "splits": {},
+             "scene_counts": {s: len(scene_sets[s]) for s in SPLITS},
+             "split_source": "official LEVIR-CD split (filename prefix)",
+             "leakage_check": "passed - splits disjoint at scene level"}
     for split in SPLITS:
         print(f"[{split}]", flush=True)
         stats["splits"][split] = tile_split(split, args.tile)
