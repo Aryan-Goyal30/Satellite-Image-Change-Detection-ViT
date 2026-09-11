@@ -92,6 +92,8 @@ be added without touching model, training or evaluation code.
 | `src/train/train.py` | training loop, AMP, checkpoint on best val F1 |
 | `src/eval/metrics.py` | global TP/FP/FN/TN, P/R/F1/IoU, PR sweep, AP |
 | `src/eval/evaluate.py` | val-threshold selection -> test evaluation |
+| `src/eval/evaluate_baseline.py` | Stage 0 frozen-ViT baseline scored with the same tiles, metrics and protocol |
+| `src/viz/compare_figures.py` | Stage 0 vs Stage 1 comparison figures |
 | `src/inference/engine.py` | **product core**: tiling, stitching, post-proc, JSON |
 | `src/viz/figures.py` | presentation figures |
 | `predict.py` | CLI entry point |
