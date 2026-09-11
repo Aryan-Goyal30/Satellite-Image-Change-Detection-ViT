@@ -17,7 +17,7 @@
         +=============v=============+
         |   CHANGE DETECTION ENGINE |
         |                           |
-        |   Siamese ResNet-18       |   shared weights, both dates
+        |   Siamese ResNet-34       |   shared weights, both dates
         |   encoder  (5 scales)     |
         |          |                |
         |   Fusion per scale:       |
@@ -115,12 +115,25 @@ Change detection is pixel-level segmentation. Skip connections carry the
 high-resolution detail that the encoder's downsampling discards, which is what
 lets the output localise a 12 m building rather than a 73 m block.
 
-**Why ResNet-18 and not ViT-B/16?**
+**Why a ResNet-34 encoder and not ViT-B/16?**
 Plain ViT-B/16 at 224 has a single fixed 14×14 token scale and no feature
 pyramid, so its finest output cell is ~73 m on the ground at 0.5 m GSD — coarser
-than the buildings being detected. ResNet-18 gives a 5-level pyramid down to
-stride 2, trains in ~1 h on 8 GB, and is straightforward to justify. The frozen
-ViT remains in `baseline/` as the Stage 0 unsupervised control.
+than the buildings being detected. A ResNet gives a 5-level pyramid down to
+stride 2 and is straightforward to justify. The frozen ViT remains in
+`baseline/` as the Stage 0 unsupervised control.
+
+**Why ResNet-34 specifically?** Chosen by profiling on the actual GPU
+(RTX 5060 Laptop, 7.93 GB), batch 32, AMP:
+
+| Encoder | Params | Peak VRAM | Throughput |
+|---|---|---|---|
+| ResNet-18 | 15.0 M | 2.78 GB (35%) | 206 img/s |
+| **ResNet-34** | **25.1 M** | **3.31 GB (42%)** | **160 img/s** |
+| ResNet-50 | 43.7 M | 6.18 GB (78%) | 99 img/s |
+
+ResNet-34 costs little over ResNet-18 and leaves a safe VRAM margin on a laptop
+GPU that also drives the display; ResNet-50 is too close to the limit. The full
+50-epoch run took 42 minutes.
 
 **Why threshold on validation?**
 A threshold picked on test is a tuned parameter, and the resulting score is

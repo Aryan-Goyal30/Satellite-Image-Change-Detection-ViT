@@ -38,7 +38,7 @@ ENCODERS = {
 class ResNetEncoder(nn.Module):
     """ResNet trunk exposed as a 5-level feature pyramid (strides 2,4,8,16,32)."""
 
-    def __init__(self, name="resnet18", pretrained=True):
+    def __init__(self, name="resnet34", pretrained=True):
         super().__init__()
         ctor, weights, self.channels = ENCODERS[name]
         net = ctor(weights=weights if pretrained else None)
@@ -98,7 +98,7 @@ class SiameseUNet(nn.Module):
 
     NAME = "siamese-unet"
 
-    def __init__(self, encoder="resnet18", pretrained=True, decoder_channels=(256, 128, 64, 32, 16)):
+    def __init__(self, encoder="resnet34", pretrained=True, decoder_channels=(256, 128, 64, 32, 16)):
         super().__init__()
         self.encoder_name = encoder
         self.encoder = ResNetEncoder(encoder, pretrained)
@@ -131,7 +131,7 @@ class SiameseUNet(nn.Module):
         return sum(p.numel() for p in self.parameters())
 
 
-def build_model(encoder="resnet18", pretrained=True):
+def build_model(encoder="resnet34", pretrained=True):
     return SiameseUNet(encoder=encoder, pretrained=pretrained)
 
 
