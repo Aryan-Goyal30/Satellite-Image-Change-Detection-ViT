@@ -9,3 +9,4 @@ data/
 checkpoints/
 outputs/predictions/
 outputs/smoke_pred/
+logs/
