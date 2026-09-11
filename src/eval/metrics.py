@@ -78,7 +78,12 @@ class ThresholdSweep:
         total_pos = self.pos.sum()
         fn = total_pos - tp
         eps = 1e-9
-        precision = tp / (tp + fp + eps)
+        # Where nothing is predicted positive (tp + fp == 0) precision is
+        # undefined. Use the standard convention P = 1 (as sklearn does at
+        # recall 0). Defining it as 0 drew a false diagonal from the origin on
+        # the PR plot. F1 and AP are unaffected: recall is 0 at those points.
+        predicted = tp + fp
+        precision = np.where(predicted > 0, tp / np.maximum(predicted, 1), 1.0)
         recall = tp / (tp + fn + eps)
         f1 = 2 * precision * recall / (precision + recall + eps)
         return self.edges, precision, recall, f1
