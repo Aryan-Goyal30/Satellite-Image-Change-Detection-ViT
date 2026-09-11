@@ -20,7 +20,7 @@ import os
 import time
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root (this script lives in baseline/)
 before_path = os.path.join(BASE_DIR, "images", "before1.png")
 after_path  = os.path.join(BASE_DIR, "images", "after1.png")
 
@@ -323,8 +323,8 @@ info_box(fig.add_subplot(gs[3, 2]),
 )
 
 # ── Save ──
-os.makedirs(os.path.join(BASE_DIR, "outputs"), exist_ok=True)
-out_path = os.path.join(BASE_DIR, "outputs", "output_cnn_vs_vit.png")
+os.makedirs(os.path.join(BASE_DIR, "outputs", "baseline"), exist_ok=True)
+out_path = os.path.join(BASE_DIR, "outputs", "baseline", "output_cnn_vs_vit.png")
 plt.savefig(out_path, dpi=150, bbox_inches="tight", facecolor=LIGHT_BG)
 print(f"Output saved → {out_path}")
 plt.show()

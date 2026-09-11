@@ -1,6 +1,11 @@
-torch
-torchvision
-timm
-matplotlib
-numpy
-pillow
+# Earth Guardian - pinned for reproducibility
+# GPU (Blackwell / RTX 50-series needs cu128 or newer):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch>=2.7
+torchvision>=0.22
+numpy>=1.26
+pillow>=10.0
+matplotlib>=3.8
+opencv-python-headless>=4.9      # connected-component region counting
+streamlit>=1.35                  # demo UI only
+timm>=1.0                        # baseline/ (Stage 0 frozen ViT) only
