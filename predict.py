@@ -18,7 +18,7 @@ def main():
     ap = argparse.ArgumentParser(description="Earth Guardian - Built-Environment Change Monitor")
     ap.add_argument("--before", required=True)
     ap.add_argument("--after", required=True)
-    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r18_best.pt")
+    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r34_best.pt")
     ap.add_argument("--out", default="outputs/predictions")
     ap.add_argument("--threshold", type=float, default=None,
                     help="default: value selected on the validation split")

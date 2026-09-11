@@ -30,9 +30,9 @@ CKPT_DIR = os.path.join(ROOT, "checkpoints")
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--encoder", default="resnet18", choices=["resnet18", "resnet34", "resnet50"])
+    p.add_argument("--encoder", default="resnet34", choices=["resnet18", "resnet34", "resnet50"])
     p.add_argument("--epochs", type=int, default=40)
-    p.add_argument("--batch-size", type=int, default=16)
+    p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--pos-weight", type=float, default=2.0)
@@ -43,7 +43,7 @@ def get_args():
     p.add_argument("--no-amp", dest="amp", action="store_false")
     p.add_argument("--limit-train", type=int, default=0, help="debug: cap train tiles")
     p.add_argument("--tiles", default=None, help="override tile root (default data/levir_cd_tiles)")
-    p.add_argument("--run-name", default="siamese_unet_r18")
+    p.add_argument("--run-name", default="siamese_unet_r34")
     return p.parse_args()
 
 

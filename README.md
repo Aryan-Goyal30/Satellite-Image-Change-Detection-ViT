@@ -66,11 +66,11 @@ no-leakage argument.
 ### 3. Train
 
 ```bash
-python -m src.train.train --epochs 40 --batch-size 16
+python -m src.train.train --epochs 50 --batch-size 32
 ```
 
 Checkpoints the best model **by validation F1** to
-`checkpoints/siamese_unet_r18_best.pt`. Loss is a poor selection signal here
+`checkpoints/siamese_unet_r34_best.pt`. Loss is a poor selection signal here
 because it is dominated by the ~95% background class.
 
 ### 4. Evaluate
@@ -119,7 +119,7 @@ The JSON is the product's actual interface; every visual is a renderer over it.
 
 ```json
 {
-  "model":   {"name": "siamese-unet-resnet18", "version": "1.0.0",
+  "model":   {"name": "siamese-unet-resnet34", "version": "1.0.0",
               "trained_on": "LEVIR-CD", "val_f1": 0.0,
               "capability": "structural / building change detection"},
   "input":   {"height": 1024, "width": 1024, "gsd_m": null},
@@ -139,11 +139,11 @@ carry no georeferencing, so reporting ground area would be fabricated.
 
 ## Method
 
-**Model.** Siamese U-Net. One ImageNet-pretrained ResNet-18 encoder processes
+**Model.** Siamese U-Net. One ImageNet-pretrained ResNet-34 encoder processes
 both dates with **shared weights**. At each of five scales the two feature maps
 are fused as `conv1x1(concat[|f_a − f_b|, f_a + f_b])` — the difference carries
 the change signal, the sum carries scene context. A U-Net decoder returns one
-logit per pixel at full input resolution. 15.03 M parameters.
+logit per pixel at full input resolution. 25.1 M parameters.
 
 **Loss.** `0.5 · BCE(pos_weight) + 0.5 · (1 − Dice)`. LEVIR-CD is ~95%
 unchanged pixels; plain BCE collapses to predicting "no change".

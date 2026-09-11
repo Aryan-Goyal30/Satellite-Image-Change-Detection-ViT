@@ -29,7 +29,7 @@ from PIL import Image
 from src.data.levir import IMAGENET_MEAN, IMAGENET_STD
 from src.models.siamese_unet import build_model
 
-DEFAULT_CKPT = "checkpoints/siamese_unet_r18_best.pt"
+DEFAULT_CKPT = "checkpoints/siamese_unet_r34_best.pt"
 
 
 def _hann2d(size):
@@ -49,7 +49,7 @@ class ChangeEngine:
 
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         ck = torch.load(path, map_location=self.device, weights_only=False)
-        self.model = build_model(ck.get("encoder", "resnet18"), pretrained=False).to(self.device)
+        self.model = build_model(ck.get("encoder", "resnet34"), pretrained=False).to(self.device)
         self.model.load_state_dict(ck["model_state"])
         self.model.eval()
 

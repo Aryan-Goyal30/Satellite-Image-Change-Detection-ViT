@@ -7,7 +7,7 @@ Produces:
   fig4_failures.png              representative failure cases
 
 Run after training + evaluation:
-    python -m src.viz.figures --checkpoint checkpoints/siamese_unet_r18_best.pt
+    python -m src.viz.figures --checkpoint checkpoints/siamese_unet_r34_best.pt
 """
 import argparse
 import json
@@ -194,7 +194,7 @@ def fig3_metrics(ev, path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r18_best.pt")
+    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r34_best.pt")
     ap.add_argument("--n-scan", type=int, default=600)
     ap.add_argument("--tiles", default=None, help="override tile root")
     args = ap.parse_args()

@@ -33,7 +33,7 @@ st.caption("Built-Environment Change Monitor - structural / building change dete
 
 with st.sidebar:
     st.header("Model")
-    ckpt = st.text_input("Checkpoint", "checkpoints/siamese_unet_r18_best.pt")
+    ckpt = st.text_input("Checkpoint", "checkpoints/siamese_unet_r34_best.pt")
     try:
         engine = get_engine(ckpt)
     except Exception as e:
