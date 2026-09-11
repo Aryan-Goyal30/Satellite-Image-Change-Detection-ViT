@@ -19,7 +19,7 @@ truth.
 
 | Stage | What it is | Status |
 |---|---|---|
-| **Stage 0** — `baseline/` | Frozen ImageNet ViT-B/16 feature distance + RGB heuristics. The original POC. **No training, no ground truth, no metrics.** Kept as an unsupervised control arm. | preserved, not the product |
+| **Stage 0** — `baseline/` | Frozen ImageNet ViT-B/16 feature distance + RGB heuristics. The original POC. **No training.** Its ViT feature-distance map is scored against LEVIR-CD ground truth as a control (see [Results](#results)); the RGB heuristic classes are not scored and are not a capability. | preserved, not the product |
 | **Stage 1** — `src/` | Supervised Siamese U-Net trained on LEVIR-CD, evaluated against real ground-truth masks with Precision / Recall / F1 / IoU. | **current** |
 | Stage 2 | Cross-dataset generalization (WHU-CD, S2Looking), semantic change types | planned |
 | Stage 3 | Imagery provider (location + date search), georeferenced outputs | planned |
@@ -62,6 +62,25 @@ Confusion (test, pixels): TP 6,037,056 · FP 626,723 · FN 800,348 · TN 126,753
 Model `siamese-unet-resnet34` v1.0.0 · encoder `resnet34` ·
 best epoch 44 (best) of 50 run · trained on NVIDIA GeForce RTX 5060 Laptop GPU · training time 0:42:01 ·
 test inference 15.5s for 2,048 tiles.
+
+### Stage 0 vs Stage 1 — same test tiles, same protocol
+
+| Stage | Method | Trained? | Precision | Recall | F1 | IoU | AP |
+|---|---|---|---|---|---|---|---|
+| 0 | Frozen ImageNet ViT-B/16 feature distance, per-tile min-max (as in the POC) | No | 0.0770 | 0.2644 | 0.1192 | 0.0634 | 0.0684 |
+| 0 | Frozen ImageNet ViT-B/16 feature distance, calibrated on validation | No | 0.1474 | 0.3874 | 0.2135 | 0.1195 | 0.1342 |
+| **1** | **Siamese U-Net (ResNet-34), trained on LEVIR-CD** | **Yes** | 0.9060 | 0.8829 | 0.8943 | 0.8088 | 0.9400 |
+
+> **Stage 0 is not a trained change detector.** It is the original proof of
+> concept: a frozen ImageNet ViT-B/16 whose patch embeddings are compared
+> between the two dates, with the 14x14 distance map upsampled to 256x256.
+> It is kept as a control. Every row uses the same 2,048 test tiles.
+> Thresholds, and Stage 0's calibration constants, were fixed on validation
+> and applied to test unchanged. The POC's own decision rule (per-tile
+> mean + 1.5 std, no tuning) scores F1 0.0679 on the same tiles.
+
+![Stage 0 vs Stage 1](outputs/figures/fig5_stage0_vs_stage1.png)
+![Stage 0 vs Stage 1 examples](outputs/figures/fig6_stage0_vs_stage1_examples.png)
 
 ![Metrics](outputs/figures/fig3_metrics.png)
 ![Qualitative](outputs/figures/fig2_qualitative_success.png)
@@ -126,6 +145,15 @@ Writes to `outputs/figures/`:
 | `fig2_qualitative_success.png` | Before \| After \| Ground Truth \| Prediction \| Error map |
 | `fig3_metrics.png` | Precision / Recall / F1 / IoU + PR curve |
 | `fig4_failures.png` | Representative **failure** cases |
+| `fig5_stage0_vs_stage1.png` | Stage 0 baseline vs Stage 1: test metrics and PR curves |
+| `fig6_stage0_vs_stage1_examples.png` | The same test tiles through Stage 0 and Stage 1 |
+
+Stage 0 baseline scoring (frozen ViT, same test tiles, same protocol):
+
+```bash
+python -m src.eval.evaluate_baseline   # writes outputs/results/baseline_evaluation.json
+python -m src.viz.compare_figures      # writes fig5 and fig6
+```
 
 ### 6. Inference
 
