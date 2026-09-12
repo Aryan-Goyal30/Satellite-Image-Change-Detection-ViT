@@ -1,0 +1,278 @@
+{
+  "schema_version": "1.0",
+  "generated_by": "scripts/build_example_catalogue.py",
+  "note": "Bundled demo inputs. These images carry no location or acquisition-date metadata, so none is recorded. Dataset-derived entries resolve only where the LEVIR-CD tiles have been prepared.",
+  "selection_rule": "LEVIR-CD test tiles in sorted filename order whose ground truth marks at least 5% of pixels as changed, limited to 24.",
+  "examples": [
+    {
+      "id": "levir_test_100_r0_c3",
+      "name": "LEVIR-CD test tile test_100_r0_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r0_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r0_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r0_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 11.0% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r1_c2",
+      "name": "LEVIR-CD test tile test_100_r1_c2",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r1_c2.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r1_c2.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r1_c2.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 9.4% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r1_c3",
+      "name": "LEVIR-CD test tile test_100_r1_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r1_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r1_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r1_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 28.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r2_c2",
+      "name": "LEVIR-CD test tile test_100_r2_c2",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r2_c2.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r2_c2.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r2_c2.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 24.5% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r2_c3",
+      "name": "LEVIR-CD test tile test_100_r2_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r2_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r2_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r2_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 28.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r3_c1",
+      "name": "LEVIR-CD test tile test_100_r3_c1",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r3_c1.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r3_c1.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r3_c1.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 18.0% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r3_c2",
+      "name": "LEVIR-CD test tile test_100_r3_c2",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r3_c2.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r3_c2.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r3_c2.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 31.2% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_100_r3_c3",
+      "name": "LEVIR-CD test tile test_100_r3_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_100_r3_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_100_r3_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_100_r3_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 23.7% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_101_r0_c1",
+      "name": "LEVIR-CD test tile test_101_r0_c1",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_101_r0_c1.png",
+      "after": "data/levir_cd_tiles/test/B/test_101_r0_c1.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_101_r0_c1.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 17.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_101_r2_c1",
+      "name": "LEVIR-CD test tile test_101_r2_c1",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_101_r2_c1.png",
+      "after": "data/levir_cd_tiles/test/B/test_101_r2_c1.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_101_r2_c1.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 12.0% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_101_r2_c3",
+      "name": "LEVIR-CD test tile test_101_r2_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_101_r2_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_101_r2_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_101_r2_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 10.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_101_r3_c1",
+      "name": "LEVIR-CD test tile test_101_r3_c1",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_101_r3_c1.png",
+      "after": "data/levir_cd_tiles/test/B/test_101_r3_c1.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_101_r3_c1.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 12.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_101_r3_c2",
+      "name": "LEVIR-CD test tile test_101_r3_c2",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_101_r3_c2.png",
+      "after": "data/levir_cd_tiles/test/B/test_101_r3_c2.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_101_r3_c2.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 8.6% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_101_r3_c3",
+      "name": "LEVIR-CD test tile test_101_r3_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_101_r3_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_101_r3_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_101_r3_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 5.3% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_102_r0_c2",
+      "name": "LEVIR-CD test tile test_102_r0_c2",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_102_r0_c2.png",
+      "after": "data/levir_cd_tiles/test/B/test_102_r0_c2.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_102_r0_c2.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 31.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_102_r0_c3",
+      "name": "LEVIR-CD test tile test_102_r0_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_102_r0_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_102_r0_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_102_r0_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 24.7% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_102_r1_c1",
+      "name": "LEVIR-CD test tile test_102_r1_c1",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_102_r1_c1.png",
+      "after": "data/levir_cd_tiles/test/B/test_102_r1_c1.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_102_r1_c1.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 28.3% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_102_r1_c2",
+      "name": "LEVIR-CD test tile test_102_r1_c2",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_102_r1_c2.png",
+      "after": "data/levir_cd_tiles/test/B/test_102_r1_c2.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_102_r1_c2.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 22.3% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_102_r2_c0",
+      "name": "LEVIR-CD test tile test_102_r2_c0",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_102_r2_c0.png",
+      "after": "data/levir_cd_tiles/test/B/test_102_r2_c0.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_102_r2_c0.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 20.7% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_102_r3_c0",
+      "name": "LEVIR-CD test tile test_102_r3_c0",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_102_r3_c0.png",
+      "after": "data/levir_cd_tiles/test/B/test_102_r3_c0.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_102_r3_c0.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 18.3% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_103_r0_c0",
+      "name": "LEVIR-CD test tile test_103_r0_c0",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_103_r0_c0.png",
+      "after": "data/levir_cd_tiles/test/B/test_103_r0_c0.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_103_r0_c0.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 5.1% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_103_r0_c1",
+      "name": "LEVIR-CD test tile test_103_r0_c1",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_103_r0_c1.png",
+      "after": "data/levir_cd_tiles/test/B/test_103_r0_c1.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_103_r0_c1.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 5.7% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_103_r0_c3",
+      "name": "LEVIR-CD test tile test_103_r0_c3",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_103_r0_c3.png",
+      "after": "data/levir_cd_tiles/test/B/test_103_r0_c3.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_103_r0_c3.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 7.4% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "levir_test_103_r1_c0",
+      "name": "LEVIR-CD test tile test_103_r1_c0",
+      "domain": "built_environment",
+      "before": "data/levir_cd_tiles/test/A/test_103_r1_c0.png",
+      "after": "data/levir_cd_tiles/test/B/test_103_r1_c0.png",
+      "ground_truth": "data/levir_cd_tiles/test/label/test_103_r1_c0.png",
+      "description": "Held-out LEVIR-CD test tile, 256x256. Ground truth marks 7.8% of pixels as changed.",
+      "source": "LEVIR-CD official test split"
+    },
+    {
+      "id": "sample_pair_1",
+      "name": "Sample pair 1",
+      "domain": "built_environment",
+      "before": "images/before1.png",
+      "after": "images/after1.png",
+      "ground_truth": null,
+      "description": "Bundled sample pair, 1024x1024. No ground-truth mask is available for this pair.",
+      "source": "LEVIR-CD sample (split membership not recorded)"
+    },
+    {
+      "id": "sample_pair_2",
+      "name": "Sample pair 2",
+      "domain": "built_environment",
+      "before": "images/before.png",
+      "after": "images/after.png",
+      "ground_truth": null,
+      "description": "Bundled sample pair, 1024x1024. No ground-truth mask is available for this pair.",
+      "source": "LEVIR-CD sample (split membership not recorded)"
+    },
+    {
+      "id": "sample_pair_3",
+      "name": "Sample pair 3",
+      "domain": "built_environment",
+      "before": "images/before2.png",
+      "after": "images/after2.png",
+      "ground_truth": null,
+      "description": "Bundled sample pair, 1024x1024. No ground-truth mask is available for this pair.",
+      "source": "LEVIR-CD sample (split membership not recorded)"
+    }
+  ]
+}

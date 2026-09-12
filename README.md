@@ -105,9 +105,14 @@ pip install -r requirements.txt
 ### 2. Data
 
 ```bash
-python scripts/download_levir.py     # ~2.5 GB, resumable, official split
-python scripts/prepare_tiles.py      # 1024^2 scenes -> 256^2 tiles
+python scripts/download_levir.py            # ~2.5 GB, resumable, official split
+python scripts/prepare_tiles.py             # 1024^2 scenes -> 256^2 tiles
+python scripts/build_example_catalogue.py   # bundled demo examples
 ```
+
+The catalogue lets the applications select inputs by logical ID, so they never
+need to know how the dataset is laid out. Without the dataset it still resolves
+the three sample pairs tracked in `images/`.
 
 See [docs/DATASET.md](docs/DATASET.md) for the directory layout and the
 no-leakage argument.
@@ -175,23 +180,40 @@ streamlit run app.py
 
 The JSON is the product's actual interface; every visual is a renderer over it.
 
+`ChangeResult`, schema v1:
+
 ```json
 {
-  "model":   {"name": "siamese-unet-resnet34", "version": "1.0.0",
-              "trained_on": "LEVIR-CD", "val_f1": 0.0,
-              "capability": "structural / building change detection"},
-  "input":   {"height": 1024, "width": 1024, "gsd_m": null},
-  "params":  {"threshold": 0.5, "min_area_px": 32, "tile": 256, "overlap": 64},
-  "summary": {"changed_pixels": 0, "total_pixels": 1048576,
-              "changed_area_pct": 0.0, "n_regions": 0,
-              "mean_confidence": 0.0, "changed_area_m2": null},
-  "regions": [{"id": 1, "area_px": 0, "bbox_xywh": [0,0,0,0],
-               "centroid_xy": [0,0]}]
+  "schema_version": "1.0",
+  "layers":   [{"name": "structural_change", "threshold": 0.625,
+                "changed_pixels": 0, "mean_confidence": 0.0,
+                "has_score_map": true, "description": "..."}],
+  "regions":  [{"id": 1, "area_px": 0, "bbox_xywh": [0,0,0,0],
+                "centroid_xy": [0,0], "layer": "structural_change"}],
+  "quantities": {"changed_pixels": 0, "total_pixels": 1048576,
+                 "changed_percentage": 0.0, "area_m2": null},
+  "provenance": {"model": "siamese-unet-resnet34", "version": "1.0.0",
+                 "task": "Binary structural change detection",
+                 "dataset": "LEVIR-CD", "threshold": 0.625,
+                 "weights_hash": "...", "evaluation_protocol": "...",
+                 "operating_envelope": {"gsd_m_range": [0.3, 1.0], "...": "..."}},
+  "input":  {"height": 1024, "width": 1024},
+  "georef": null,
+  "params": {"threshold": 0.625, "min_area_px": 32, "tile": 256, "overlap": 64},
+  "runtime_seconds": 0.0,
+  "warnings": []
 }
 ```
 
-`changed_area_m2` is `null` unless a real `--gsd-m` is supplied. LEVIR-CD PNGs
-carry no georeferencing, so reporting ground area would be fabricated.
+`layers` is a list so a future multi-class engine fits without a schema break;
+this engine emits exactly one layer.
+
+`area_m2` is `null` unless a real `--gsd-m` is supplied — it is produced only
+from a `GeoRef` with a true ground sample distance, and LEVIR-CD PNGs carry no
+georeferencing, so reporting ground area would be fabricated.
+
+The pre-v1 result dictionary is deprecated but still available via
+`predict.py --legacy-json`.
 
 ---
 
@@ -254,6 +276,8 @@ src/core/                           domain-independent contracts
 src/common/                         shared services
     preprocessing.py                  normalisation contract
     model_loader.py                   checkpoint -> model
+    examples.py                       example catalogue loader (input source)
+examples/catalogue.json             bundled examples: logical ID -> file paths
 src/domains/
     built_environment/              the one implemented domain
         data/levir.py                 LEVIR-CD dataset and augmentation

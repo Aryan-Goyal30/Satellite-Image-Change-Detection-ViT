@@ -14,6 +14,11 @@ confidence value. Nothing else is implemented.
 ## 1. Layering
 
 ```
+              INPUT SOURCE     examples/catalogue.json  (logical example IDs)
+                               FUTURE: imagery provider (location + date)
+                        │
+                        │  applications resolve inputs by ID, never by path
+                        ▼
                         APPLICATIONS
             predict.py (CLI)      app.py (Streamlit)
                         │
@@ -56,6 +61,33 @@ confidence value. Nothing else is implemented.
 **Dependency rule:** applications depend on `core`; domains depend on `core` and
 `common`; `core` depends on nothing. `common` and `core` contain no
 domain-specific logic and no dataset knowledge.
+
+### Inputs — current and future
+
+| | |
+|---|---|
+| **Current input** | A **local image pair**, selected by logical ID from `examples/catalogue.json`, or uploaded directly. |
+| **Future input** | An **imagery provider**: choose a location and two dates, and the provider returns the pair. **Not implemented.** |
+
+The applications call `src/common/examples.py` and receive resolved image paths.
+They do not know that a LEVIR-CD tile directory exists. When an imagery provider
+is added it fills the same slot and returns the same thing — a before/after pair
+— so neither application nor engine has to change.
+
+The catalogue records only facts that exist: file paths, whether a ground-truth
+mask is available, and the measured ground-truth change fraction. These images
+carry **no location or acquisition-date metadata**, so none is recorded.
+
+### Application flow
+
+```
+    example ID (or upload)
+        -> src/common/examples.py         resolve to a before/after pair
+        -> registry.get("built_environment")
+        -> engine.analyze(before, after)
+        -> ChangeResult                   the representation both apps render
+        -> presentation (metrics, images) / export (ChangeResult.to_dict())
+```
 
 ---
 
@@ -146,6 +178,9 @@ always `null`. There is no code path that fabricates it.
 | `src/core/registry.py` | Engine name -> implementation, resolved lazily |
 | `src/common/preprocessing.py` | Normalisation constants and tensor conversion |
 | `src/common/model_loader.py` | Checkpoint reading, architecture resolution, SHA-256 |
+| `src/common/examples.py` | Example catalogue loader — the current input source |
+| `examples/catalogue.json` | Bundled example definitions (logical ID → file paths) |
+| `scripts/build_example_catalogue.py` | Regenerates the catalogue from prepared data |
 | `src/domains/built_environment/data/levir.py` | LEVIR-CD dataset and augmentation |
 | `src/domains/built_environment/engine.py` | Inference engine: tiling, stitching, post-processing, result |
 | `src/domains/built_environment/model_card.py` | What this model may claim; operating envelope |

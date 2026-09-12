@@ -3,8 +3,14 @@
     python predict.py --before images/before1.png --after images/after1.png
     python predict.py --before A.png --after B.png --out outputs/demo --json
 
-The CLI is a thin wrapper: all logic lives in src/inference/engine.py, which the
-Streamlit app also calls. One code path, two entry points.
+The CLI is a thin wrapper: it asks the engine registry for a domain engine and
+works with the ChangeResult contract. The Streamlit app uses the same engine and
+the same contract, so there is one code path and one result representation.
+
+    engine.analyze(...) -> ChangeResult -> presentation / export
+
+The legacy result dictionary is still available behind --legacy-json for
+consumers that have not migrated. It is deprecated.
 """
 import argparse, json, os, sys
 import numpy as np
@@ -20,6 +26,8 @@ def main():
     ap = argparse.ArgumentParser(description="Earth Guardian - Built-Environment Change Monitor")
     ap.add_argument("--before", required=True)
     ap.add_argument("--after", required=True)
+    ap.add_argument("--engine", default="built_environment",
+                    help=f"engine to use. Available: {registry.available()}")
     ap.add_argument("--checkpoint", default=config.DEFAULT_CHECKPOINT_REL)
     ap.add_argument("--out", default="outputs/predictions")
     ap.add_argument("--threshold", type=float, default=None,
@@ -27,13 +35,20 @@ def main():
     ap.add_argument("--min-area-px", type=int, default=32)
     ap.add_argument("--gsd-m", type=float, default=None,
                     help="metres per pixel; only then are m2 areas reported")
-    ap.add_argument("--json", action="store_true", help="print JSON only")
+    ap.add_argument("--json", action="store_true", help="print the ChangeResult JSON only")
+    ap.add_argument("--legacy-json", action="store_true",
+                    help="DEPRECATED: also write the pre-v1 result dictionary "
+                         "as <stem>_result_legacy.json")
     args = ap.parse_args()
 
-    engine = registry.get("built_environment", checkpoint=args.checkpoint)
+    engine = registry.get(args.engine, checkpoint=args.checkpoint)
     out = engine.analyze(args.before, args.after, threshold=args.threshold,
                          min_area_px=args.min_area_px, gsd_m=args.gsd_m)
-    res, mask, prob = out["result"], out["mask"], out["probability"]
+
+    # ChangeResult is the primary representation.
+    cr = out["change_result"]
+    mask, prob = out["mask"], out["probability"]
+    md = engine.metadata
 
     os.makedirs(args.out, exist_ok=True)
     stem = os.path.splitext(os.path.basename(args.before))[0]
@@ -41,27 +56,36 @@ def main():
     Image.fromarray((prob * 255).astype(np.uint8)).save(os.path.join(args.out, f"{stem}_prob.png"))
     Image.fromarray(overlay(out["after"], mask)).save(os.path.join(args.out, f"{stem}_overlay.png"))
     with open(os.path.join(args.out, f"{stem}_result.json"), "w") as f:
-        json.dump(res, f, indent=2)
+        json.dump(cr.to_dict(), f, indent=2)
+
+    if args.legacy_json:   # deprecated compatibility path
+        with open(os.path.join(args.out, f"{stem}_result_legacy.json"), "w") as f:
+            json.dump(out["result"], f, indent=2)
 
     if args.json:
-        print(json.dumps(res, indent=2)); return
+        print(json.dumps(cr.to_dict(), indent=2)); return
 
-    s = res["summary"]
-    print(f"\n  Earth Guardian - {res['model']['name']} v{res['model']['version']}")
-    print(f"  capability : {res['model']['capability']}")
-    print(f"  trained on : {res['model']['trained_on']}  (val F1 {res['model']['val_f1']})")
+    q = cr.quantities
+    layer = cr.primary_layer
+    prov = cr.provenance
+    print(f"\n  Earth Guardian - {md.display_name} ({md.name} v{md.version})")
+    print(f"  task       : {md.task}")
+    print(f"  trained on : {prov.dataset}  (val F1 {round(engine.val_f1, 4)})")
     print("  " + "-" * 52)
-    print(f"  changed pixels   : {s['changed_pixels']:,} / {s['total_pixels']:,}")
-    print(f"  changed area     : {s['changed_area_pct']:.3f} %")
-    print(f"  regions detected : {s['n_regions']}")
-    print(f"  mean confidence  : {s['mean_confidence']:.3f}")
-    if s["changed_area_m2"] is None:
+    print(f"  layer            : {layer.name}")
+    print(f"  changed pixels   : {q.changed_pixels:,} / {q.total_pixels:,}")
+    print(f"  changed area     : {q.changed_percentage:.3f} %")
+    print(f"  regions detected : {len(cr.regions)}")
+    print(f"  mean confidence  : {layer.mean_confidence:.3f}")
+    if q.area_m2 is None:
         print("  area in m2       : n/a (no GSD supplied - not fabricated)")
     else:
-        print(f"  area in m2       : {s['changed_area_m2']:,}")
-    print(f"  threshold        : {res['params']['threshold']}")
-    print(f"  runtime          : {res['runtime_seconds']}s")
-    print(f"\n  wrote -> {args.out}/")
+        print(f"  area in m2       : {q.area_m2:,}")
+    print(f"  threshold        : {cr.params['threshold']}")
+    print(f"  runtime          : {cr.runtime_seconds}s")
+    for w in cr.warnings:
+        print(f"  warning          : {w}")
+    print(f"\n  wrote -> {args.out}/  (schema v{cr.schema_version})")
 
 
 if __name__ == "__main__":

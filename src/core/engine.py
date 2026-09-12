@@ -30,9 +30,11 @@ class EngineMetadata:
     provenance: Provenance
     version: str = "1.0.0"
     description: str = ""
+    display_name: str = ""              # human-readable domain name for a UI
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "domain": self.domain, "task": self.task,
+        return {"name": self.name, "domain": self.domain,
+                "display_name": self.display_name, "task": self.task,
                 "version": self.version, "description": self.description,
                 "capabilities": list(self.capabilities),
                 "input_spec": self.input_spec.to_dict(),
