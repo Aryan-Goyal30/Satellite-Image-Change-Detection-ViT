@@ -186,8 +186,30 @@ Inference runs only when **Analyze change** is pressed; switching views,
 highlighting a region or opening a section reads the stored `ChangeResult`.
 
 Uploads must be an optical RGB pair of the **same dimensions** covering the same
-area. Multispectral and SAR products are not supported by this engine, and no
-ground area in m² is reported because the imagery carries no georeferencing.
+area. Multispectral and SAR products (more than four bands) are rejected rather
+than having bands picked arbitrarily.
+
+### Regions and ground area
+
+A **region** is a connected component of the change mask — a contiguous patch of
+detected change. It is *not* an identified building, and it carries no direction
+(construction vs demolition). Components smaller than
+`config.DEFAULT_MIN_AREA_PX` (32 px) are discarded as noise.
+
+**Region confidence** is the mean predicted change probability over that
+region's pixels, on the same 0–1 scale as the threshold. It summarises model
+score; it is not a calibrated per-region probability and has not been validated
+per region.
+
+**Ground area in m² is only available for georeferenced GeoTIFFs.** PNG and JPEG
+carry no georeferencing, so there is no scale to convert pixels with and any
+figure would be invented. For GeoTIFF, metres require a **projected** CRS whose
+linear unit is metre, with square pixels; a geographic CRS (degrees, e.g.
+EPSG:4326) never yields m², because converting degrees to metres depends on
+latitude. Both images must share dimensions, CRS and geotransform — Earth
+Guardian performs **no reprojection, resampling or registration**, and refuses
+mismatched pairs instead of pretending they align. GeoTIFF metadata is read
+through Pillow's TIFF tags, with no rasterio or GDAL dependency.
 
 *Future (not implemented): choosing a location and dates and having imagery
 acquired for you; Environmental and Disaster monitors.*

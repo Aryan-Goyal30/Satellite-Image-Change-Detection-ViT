@@ -103,13 +103,7 @@ def render():
     m3.metric("Detected regions", len(regions))
     m4.metric("Mean confidence", f"{layer.mean_confidence:.3f}")
 
-    if q.area_m2 is not None:
-        st.metric("Changed area (m2)", f"{q.area_m2:,.0f}")
-    else:
-        theme.note(
-            "Ground area in m&sup2; is not reported: this imagery carries no "
-            "georeferencing or ground sample distance, so any figure would be "
-            "invented.")
+    _geospatial_summary(cr, q)
 
     if comparison is not None:
         theme.note(
@@ -125,16 +119,15 @@ def render():
     if regions:
         st.write("")
         st.markdown("#### Region details")
-        rows = [{"Region": r.id,
-                 "Area (px)": r.area_px,
-                 "X": r.bbox_xywh[0], "Y": r.bbox_xywh[1],
-                 "Width": r.bbox_xywh[2], "Height": r.bbox_xywh[3],
-                 "Centroid X": r.centroid_xy[0], "Centroid Y": r.centroid_xy[1]}
-                for r in regions]
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-        theme.note(
-            "Regions are connected components of the change mask. A region is "
-            "an area of detected change, not an identified building.")
+        st.dataframe(_region_table(regions), use_container_width=True, hide_index=True)
+        note = ("Regions are connected components of the change mask. A region is "
+                "an area of detected change, not an identified building, and it "
+                "carries no direction (construction or demolition).")
+        if any(r.confidence is not None for r in regions):
+            note += (" Confidence is the mean predicted change probability over "
+                     "that region's pixels - a summary of model score, not a "
+                     "calibrated per-region probability.")
+        theme.note(note)
 
     # --------------------------------------------------------- model / about
     st.write("")
@@ -144,6 +137,56 @@ def render():
     st.download_button(
         "Download result (JSON)", json.dumps(cr.to_dict(), indent=2),
         file_name="earth_guardian_result.json", mime="application/json")
+
+
+def _region_table(regions):
+    """Region table; geographic and confidence columns appear only if present."""
+    has_conf = any(r.confidence is not None for r in regions)
+    has_area = any(r.area_m2 is not None for r in regions)
+    has_crs = any(r.centroid_crs_xy is not None for r in regions)
+
+    rows = []
+    for r in regions:
+        row = {"Region": r.id, "Area (px)": r.area_px}
+        if has_area:
+            row["Area (m2)"] = r.area_m2
+        if has_conf:
+            row["Confidence"] = r.confidence
+        row.update({"X": r.bbox_xywh[0], "Y": r.bbox_xywh[1],
+                    "Width": r.bbox_xywh[2], "Height": r.bbox_xywh[3],
+                    "Centroid X": r.centroid_xy[0], "Centroid Y": r.centroid_xy[1]})
+        if has_crs and r.centroid_crs_xy is not None:
+            row["Centroid E"] = r.centroid_crs_xy[0]
+            row["Centroid N"] = r.centroid_crs_xy[1]
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _geospatial_summary(cr, q):
+    """Ground area and CRS, shown only when the input actually supports them."""
+    georef = cr.georef
+    if q.area_m2 is not None:
+        c1, c2 = st.columns(2)
+        c1.metric("Changed ground area", f"{q.area_m2:,.0f} m2")
+        if georef is not None and georef.gsd_m:
+            c2.metric("Pixel size", f"{georef.gsd_m:g} m")
+        if georef is not None and georef.crs:
+            theme.note(f"Georeferenced input: {georef.crs}. Ground area is "
+                       f"pixel count x pixel area; it is not a surveyed "
+                       f"measurement and assumes the supplied geotransform.")
+        return
+
+    if georef is not None and georef.crs:
+        theme.note(
+            f"Georeferenced input ({georef.crs}), but ground area in m&sup2; is "
+            f"not available: "
+            f"{'the CRS is not metric' if georef.units == 'degrees' else 'no usable metric pixel size was found'}. "
+            f"Results are reported in pixels.")
+    else:
+        theme.note(
+            "Ground area in m&sup2; is not reported: this imagery carries no "
+            "georeferencing or ground sample distance, so any figure would be "
+            "invented. Supply a georeferenced GeoTIFF to obtain m&sup2;.")
 
 
 def _view_image(view, before, after, mask, prob, comparison):
@@ -166,6 +209,7 @@ def _about(cr):
         "Architecture": md.description,
         "Training dataset": prov.dataset,
         "Decision threshold": prov.threshold,
+        "Minimum region size": f"{cr.params.get('min_area_px')} px",
         "Detects": ", ".join(md.capabilities),
         "Result schema": f"v{cr.schema_version}",
         "Analysis time": f"{cr.runtime_seconds}s",

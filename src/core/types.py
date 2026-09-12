@@ -22,7 +22,10 @@ from typing import Any, Optional, Sequence
 
 import numpy as np
 
-SCHEMA_VERSION = "1.0"
+# 1.1 adds optional fields only: GeoRef.units / GeoRef.pixel_size and
+# Region.centroid_crs_xy. Every 1.0 field keeps its name and meaning, so a 1.0
+# consumer reading a 1.1 result sees exactly what it saw before.
+SCHEMA_VERSION = "1.1"
 
 
 # --------------------------------------------------------------------- geo
@@ -31,11 +34,17 @@ class GeoRef:
     """Optional geospatial reference for an acquisition.
 
     Everything is optional because the current data (LEVIR-CD PNGs) has none.
-    `gsd_m` is the only field required to convert pixels into ground area.
+    `gsd_m` is the only field required to convert pixels into ground area, and
+    it is set only when the source declares a projected CRS whose linear unit is
+    metre - see src/common/georef.py. `units` records what the pixel size is
+    measured in, so "degrees" can be reported without ever being treated as
+    metres.
     """
     crs: Optional[str] = None
     transform: Optional[Sequence[float]] = None
     gsd_m: Optional[float] = None
+    units: Optional[str] = None
+    pixel_size: Optional[Sequence[float]] = None
 
     @property
     def has_scale(self) -> bool:
@@ -44,7 +53,9 @@ class GeoRef:
     def to_dict(self) -> dict:
         return {"crs": self.crs,
                 "transform": list(self.transform) if self.transform else None,
-                "gsd_m": self.gsd_m}
+                "gsd_m": self.gsd_m,
+                "units": self.units,
+                "pixel_size": list(self.pixel_size) if self.pixel_size else None}
 
 
 # ------------------------------------------------------------------ inputs
@@ -100,6 +111,16 @@ class Layer:
 # ----------------------------------------------------------------- regions
 @dataclass
 class Region:
+    """One connected component of a layer's change mask.
+
+    An area of detected change - not an identified building, and with no
+    direction (construction vs demolition) attached.
+
+    `confidence` is the mean predicted change probability over the region's
+    pixels; see src/common/regions.py for the exact definition. `area_m2` and
+    `centroid_crs_xy` are populated only when a GeoRef with a metric scale /
+    transform is available.
+    """
     id: int
     area_px: int
     bbox_xywh: Sequence[int]
@@ -107,6 +128,7 @@ class Region:
     confidence: Optional[float] = None
     layer: Optional[str] = None
     area_m2: Optional[float] = None
+    centroid_crs_xy: Optional[Sequence[float]] = None
 
     def to_dict(self) -> dict:
         d = {"id": self.id, "area_px": self.area_px,
@@ -118,6 +140,8 @@ class Region:
             d["layer"] = self.layer
         if self.area_m2 is not None:
             d["area_m2"] = self.area_m2
+        if self.centroid_crs_xy is not None:
+            d["centroid_crs_xy"] = list(self.centroid_crs_xy)
         return d
 
 

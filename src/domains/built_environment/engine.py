@@ -11,7 +11,8 @@ between two co-located optical images.
     out["result"]          # legacy dict, frozen for the existing CLI/UI
 
 No UI dependency, and no dataset dependency: normalisation comes from the shared
-preprocessing contract, and checkpoint loading from the shared model loader.
+preprocessing contract, checkpoint loading from the shared model loader, and
+region extraction from the shared region module.
 
 Handles images larger than the model's 256x256 training tile by sliding-window
 inference with Hann-weighted blending, so a full 1024x1024 scene comes back
@@ -19,9 +20,10 @@ without tile seams.
 
 Area units
 ----------
-LEVIR-CD ships plain PNGs with no georeferencing and no documented GSD, so this
-engine reports PIXEL counts and PERCENTAGES only. `area_m2` is produced solely by
-Quantities.from_mask() when a real GeoRef scale is supplied. We do not fabricate
+Ordinary PNG/JPEG imagery carries no georeferencing, so this engine reports
+PIXEL counts and PERCENTAGES only. `area_m2` is produced solely by
+Quantities.from_mask() / extract_regions() when a GeoRef with a real metric
+scale is supplied by the caller - see src/common/georef.py. We do not fabricate
 ground areas.
 """
 import os
@@ -34,15 +36,15 @@ from PIL import Image
 from src import config
 from src.common.model_loader import checkpoint_sha256, load_model
 from src.common.preprocessing import IMAGENET_MEAN, IMAGENET_STD, to_batched_tensor
+from src.common.regions import extract_regions
 from src.common.visualization import overlay  # noqa: F401  (re-export)
-from src.core.types import ChangeResult, GeoRef, Layer, Quantities, Region
+from src.core.types import ChangeResult, GeoRef, Layer, Quantities
 from src.domains.built_environment import model_card
 
 DEFAULT_CKPT = config.DEFAULT_CHECKPOINT_REL
 
 # The legacy result dict is a published output shape (predict.py writes it to
-# disk, app.py renders it). It is frozen deliberately: migrating consumers to
-# ChangeResult.to_dict() is a separate, explicit step.
+# disk behind --legacy-json). It is frozen deliberately.
 LEGACY_CAPABILITY = "structural / building change detection"
 
 
@@ -147,36 +149,18 @@ class ChangeEngine:
 
         return (acc / np.maximum(wsum, 1e-6))[:H, :W]
 
-    # ------------------------------------------------------- postprocessing
-    @staticmethod
-    def _regions(mask, min_area_px):
-        """Connected components, filtered by area. Returns (labels, list-of-dict)."""
-        try:
-            import cv2
-        except ImportError:
-            return None, None
-        n, labels, stats, cents = cv2.connectedComponentsWithStats(
-            mask.astype(np.uint8), connectivity=8)
-        out = []
-        for i in range(1, n):                       # 0 is background
-            area = int(stats[i, cv2.CC_STAT_AREA])
-            if area < min_area_px:
-                labels[labels == i] = 0
-                continue
-            x, y, w, h = (int(stats[i, cv2.CC_STAT_LEFT]), int(stats[i, cv2.CC_STAT_TOP]),
-                          int(stats[i, cv2.CC_STAT_WIDTH]), int(stats[i, cv2.CC_STAT_HEIGHT]))
-            out.append({"id": len(out) + 1, "area_px": area,
-                        "bbox_xywh": [x, y, w, h],
-                        "centroid_xy": [round(float(cents[i][0]), 1),
-                                        round(float(cents[i][1]), 1)]})
-        out.sort(key=lambda d: -d["area_px"])
-        for j, d in enumerate(out, 1):
-            d["id"] = j
-        return labels, out
-
     # -------------------------------------------------------------- public
-    def analyze(self, before, after, threshold=None, min_area_px=32, gsd_m=None):
+    def analyze(self, before, after, threshold=None,
+                min_area_px=config.DEFAULT_MIN_AREA_PX, gsd_m=None, georef=None):
         """Analyze one image pair.
+
+        Args:
+            threshold:    decision threshold; defaults to the validated value
+            min_area_px:  connected components smaller than this are discarded
+            gsd_m:        metres per pixel, when the caller knows it
+            georef:       a GeoRef from src.common.georef, for GeoTIFF inputs.
+                          Geographic output (m2, CRS centroids) appears only
+                          when one of these carries a real metric scale.
 
         Returns a dict with:
             result         legacy JSON-serialisable dict (frozen output shape)
@@ -190,24 +174,37 @@ class ChangeEngine:
                 f"Image sizes differ: {a_np.shape[:2]} vs {b_np.shape[:2]}. "
                 "The two dates must cover the same extent at the same size.")
 
+        # A caller-supplied GeoRef wins; gsd_m remains supported for callers
+        # that know only the scale. Neither invents anything on its own.
+        if georef is None and gsd_m:
+            georef = GeoRef(gsd_m=float(gsd_m), units="metre")
+        effective_gsd = georef.gsd_m if (georef and georef.has_scale) else None
+
         tau = self.threshold if threshold is None else float(threshold)
         prob = self.probability_map(a_np, b_np)
         mask = (prob >= tau)
 
         H, W = mask.shape
         total_px = H * W
+
+        warnings = []
+        try:
+            mask, regions = extract_regions(
+                mask, score_map=prob, min_area_px=min_area_px,
+                georef=georef, layer=model_card.LAYER_NAME)
+        except ImportError:
+            regions = None
+            warnings = ["opencv not installed - region counting disabled"]
+
         changed_px = int(mask.sum())
-
-        labels, regions = self._regions(mask, min_area_px)
-        if regions is not None:
-            mask = labels > 0                     # apply the min-area filter
-            changed_px = int(mask.sum())
-
         conf = float(prob[mask].mean()) if changed_px else 0.0
-        warnings = [] if regions is not None else \
-            ["opencv not installed - region counting disabled"]
 
-        # ---- legacy view: byte-for-byte the same shape as before ----
+        # ---- legacy view: unchanged shape and keys ----
+        legacy_regions = [
+            {"id": r.id, "area_px": r.area_px,
+             "bbox_xywh": list(r.bbox_xywh), "centroid_xy": list(r.centroid_xy)}
+            for r in (regions or [])
+        ]
         result = {
             "model": {
                 "name": self.model_name,
@@ -217,7 +214,7 @@ class ChangeEngine:
                 "val_f1": round(self.val_f1, 4),
                 "capability": LEGACY_CAPABILITY,
             },
-            "input": {"height": H, "width": W, "gsd_m": gsd_m},
+            "input": {"height": H, "width": W, "gsd_m": effective_gsd},
             "params": {"threshold": round(tau, 4), "min_area_px": min_area_px,
                        "tile": self.tile, "overlap": self.overlap},
             "summary": {
@@ -226,28 +223,23 @@ class ChangeEngine:
                 "changed_area_pct": round(100.0 * changed_px / total_px, 4),
                 "n_regions": len(regions) if regions is not None else None,
                 "mean_confidence": round(conf, 4),
-                # Populated only when a real GSD is supplied. LEVIR-CD has none.
-                "changed_area_m2": round(changed_px * gsd_m * gsd_m, 1) if gsd_m else None,
+                # Populated only when a real scale is available.
+                "changed_area_m2": (round(changed_px * effective_gsd * effective_gsd, 1)
+                                    if effective_gsd else None),
             },
-            "regions": regions if regions is not None else [],
+            "regions": legacy_regions,
             "runtime_seconds": round(time.time() - t0, 3),
         }
         if regions is None:
             result["warnings"] = warnings
 
         # ---- v1 contract view ----
-        georef = GeoRef(gsd_m=gsd_m) if gsd_m else None
         layer = Layer(name=model_card.LAYER_NAME, mask=mask, score_map=prob,
                       threshold=round(tau, 4), mean_confidence=round(conf, 4),
                       description=model_card.LAYER_DESCRIPTION)
-        typed_regions = [
-            Region(id=r["id"], area_px=r["area_px"], bbox_xywh=r["bbox_xywh"],
-                   centroid_xy=r["centroid_xy"], layer=model_card.LAYER_NAME)
-            for r in (regions or [])
-        ]
         change_result = ChangeResult(
             layers=[layer],
-            regions=typed_regions,
+            regions=list(regions or []),
             quantities=Quantities.from_mask(mask, georef),
             provenance=self._metadata.provenance,
             input_info={"height": H, "width": W},
