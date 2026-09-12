@@ -3,12 +3,17 @@
 Two input paths - a bundled example or your own pair - then one explicit
 Analyze action. Inputs are validated before the engine is ever called, and the
 engine is the only thing that performs inference.
+
+GeoTIFF pairs are read for metadata only (CRS, geotransform, pixel size). When
+that metadata supports it, the analysis gains ground area in m2. Nothing is
+reprojected, resampled or registered.
 """
 import numpy as np
 import streamlit as st
 from PIL import Image
 
-from src.common.image_input import open_image, to_rgb, validate_pair
+from src import config
+from src.common.image_input import describe_georef, open_image, to_rgb, validate_pair
 from ui import services, state, theme
 
 
@@ -107,7 +112,8 @@ def render():
         f"This engine expects paired optical {spec.channel_order} imagery, both "
         f"images covering the same area at the same size. Best results require "
         f"images that are reasonably aligned and comparable. Multispectral and "
-        f"SAR products are not supported.")
+        f"SAR products are not supported. Georeferenced GeoTIFFs additionally "
+        f"report ground area in m&sup2;.")
 
     if before is None or after is None:
         return
@@ -122,19 +128,21 @@ def render():
         st.error(issue.message)
     for issue in report.warnings:
         st.warning(issue.message)
+    theme.note(describe_georef(report))
 
     with st.expander("Advanced"):
         threshold = st.slider(
             "Decision threshold", 0.05, 0.95, float(engine.threshold), 0.01,
             help="Default is the value selected on the validation split.")
         min_area = st.slider(
-            "Minimum region size (pixels)", 0, 512, 32, 8,
-            help="Detected areas smaller than this are discarded.")
+            "Minimum region size (pixels)", 0, 512, config.DEFAULT_MIN_AREA_PX, 8,
+            help="Connected components smaller than this are discarded as noise.")
 
     st.write("")
     if st.button("Analyze change", type="primary", use_container_width=True,
                  disabled=not report.ok):
-        _run_analysis(engine, before, after, gt_path, source, threshold, min_area)
+        _run_analysis(engine, before, after, gt_path, source, threshold, min_area,
+                      report.georef)
 
 
 def _engine_ok():
@@ -150,12 +158,14 @@ def _engine_ok():
     return False
 
 
-def _run_analysis(engine, before, after, gt_path, source, threshold, min_area):
+def _run_analysis(engine, before, after, gt_path, source, threshold, min_area,
+                  georef=None):
     """The one place inference is triggered."""
     try:
         with st.spinner("Analyzing change..."):
             out = engine.analyze(to_rgb(before), to_rgb(after),
-                                 threshold=threshold, min_area_px=min_area)
+                                 threshold=threshold, min_area_px=min_area,
+                                 georef=georef)
         state.count_inference()
     except ValueError as e:
         st.error(str(e))

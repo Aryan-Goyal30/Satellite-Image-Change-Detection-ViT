@@ -102,6 +102,50 @@ stored `ChangeResult`.
 acquired for you, and the Environmental and Disaster monitors. The UI names
 those as coming later and provides no functionality for them.
 
+### Regions and georeferencing (Stage 3A)
+
+**What a region is.** A region is a connected component of the binary change
+mask — a contiguous patch of pixels scored above the decision threshold. It is
+an area of detected change. It is **not** an identified building, and it carries
+**no direction**: the model cannot say whether the change was construction or
+demolition.
+
+**Region confidence** is the **mean predicted change probability over that
+region's pixels**, on the same 0–1 scale as the threshold. It summarises how
+strongly the model scored the patch. It is *not* a calibrated probability that
+the region is a true change, and it has not been validated per region — only the
+pixel-level metrics have. Without a probability map the field stays absent
+rather than being invented.
+
+**Minimum region area.** Components smaller than `config.DEFAULT_MIN_AREA_PX`
+(32 px) are discarded as noise and removed from the mask, so the reported
+changed-pixel count always agrees with the regions listed. The default is
+defined once in `src/config.py` and read by the engine, the CLI and the UI.
+
+**When m² is available.** Never for PNG/JPEG: those formats carry no
+georeferencing, so there is no ground scale to convert pixels with — any figure
+would be invented. For GeoTIFF, `gsd_m` is set **only** when:
+
+* a projected coordinate system is declared, and
+* the linear unit is absent or states metre (EPSG 9001), and
+* pixel width and height are positive and equal to within 0.1 %.
+
+A geographic CRS (degrees, e.g. EPSG:4326) never yields metres — converting
+degrees to metres depends on latitude, which would be an assumption rather than
+a measurement. `area_m2` is produced only by `Quantities.from_mask()` and
+`extract_regions()`, and only from a `GeoRef` that passed those checks.
+
+**GeoTIFF requirements.** Both images must have identical dimensions, the same
+CRS, and the same geotransform. Different CRSs or geotransforms are **errors**,
+not warnings: Earth Guardian does **no reprojection, resampling or
+registration**, so it will not pretend two rasters are aligned when they are
+not. Metadata is read with Pillow's TIFF tags — no rasterio or GDAL dependency.
+
+**Model limitation.** The trained model is 3-channel RGB. RGB and RGBA GeoTIFFs
+are supported and single-band follows the existing policy; **products with more
+than four bands are rejected** rather than having arbitrary bands selected as a
+fake RGB composite.
+
 ### Application flow
 
 ```
@@ -204,6 +248,8 @@ always `null`. There is no code path that fabricates it.
 | `src/common/model_loader.py` | Checkpoint reading, architecture resolution, SHA-256 |
 | `src/common/examples.py` | Example catalogue loader — the current input source |
 | `src/common/visualization.py` | Error map, F1 and ground-truth comparison for applications |
+| `src/common/regions.py` | Connected-component regions, min-area filtering, region confidence |
+| `src/common/georef.py` | GeoTIFF CRS / geotransform / pixel size, read from TIFF tags |
 | `examples/catalogue.json` | Bundled example definitions (logical ID → file paths) |
 | `scripts/build_example_catalogue.py` | Regenerates the catalogue from prepared data |
 | `src/domains/built_environment/data/levir.py` | LEVIR-CD dataset and augmentation |

@@ -1,7 +1,7 @@
 """Earth Guardian CLI - analyze one image pair.
 
     python predict.py --before images/before1.png --after images/after1.png
-    python predict.py --before A.png --after B.png --out outputs/demo --json
+    python predict.py --before A.tif --after B.tif        # GeoTIFF: adds m2
 
 The CLI is a thin wrapper: it asks the engine registry for a domain engine and
 works with the ChangeResult contract. The Streamlit app uses the same engine and
@@ -17,8 +17,10 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from src import config
+from src.common.image_input import open_image, to_rgb, validate_pair
+from src.common.visualization import overlay
 from src.core import registry
-from src.domains.built_environment.engine import overlay
 
 
 def main():
@@ -33,9 +35,11 @@ def main():
     ap.add_argument("--out", default="outputs/predictions")
     ap.add_argument("--threshold", type=float, default=None,
                     help="default: value selected on the validation split")
-    ap.add_argument("--min-area-px", type=int, default=32)
+    ap.add_argument("--min-area-px", type=int, default=config.DEFAULT_MIN_AREA_PX,
+                    help="connected components smaller than this are discarded")
     ap.add_argument("--gsd-m", type=float, default=None,
-                    help="metres per pixel; only then are m2 areas reported")
+                    help="metres per pixel; only then are m2 areas reported for "
+                         "imagery that is not a georeferenced GeoTIFF")
     ap.add_argument("--json", action="store_true", help="print the ChangeResult JSON only")
     ap.add_argument("--legacy-json", action="store_true",
                     help="DEPRECATED: also write the pre-v1 result dictionary "
@@ -44,8 +48,24 @@ def main():
 
     engine = (registry.get(args.engine, checkpoint=args.checkpoint)
               if args.checkpoint else registry.get(args.engine))
-    out = engine.analyze(args.before, args.after, threshold=args.threshold,
-                         min_area_px=args.min_area_px, gsd_m=args.gsd_m)
+
+    # Validate first; this also reads GeoTIFF metadata when present.
+    try:
+        before_img, after_img = open_image(args.before), open_image(args.after)
+    except ValueError as e:
+        raise SystemExit(f"error: {e}")
+
+    report = validate_pair(before_img, after_img, engine.metadata.input_spec)
+    for issue in report.warnings:
+        print(f"  warning: {issue.message}")
+    if not report.ok:
+        for issue in report.errors:
+            print(f"  error: {issue.message}")
+        raise SystemExit(1)
+
+    out = engine.analyze(to_rgb(before_img), to_rgb(after_img),
+                         threshold=args.threshold, min_area_px=args.min_area_px,
+                         gsd_m=args.gsd_m, georef=report.georef)
 
     # ChangeResult is the primary representation.
     cr = out["change_result"]
@@ -80,10 +100,13 @@ def main():
     print(f"  regions detected : {len(cr.regions)}")
     print(f"  mean confidence  : {layer.mean_confidence:.3f}")
     if q.area_m2 is None:
-        print("  area in m2       : n/a (no GSD supplied - not fabricated)")
+        print("  area in m2       : n/a (no metric georeferencing - not fabricated)")
     else:
         print(f"  area in m2       : {q.area_m2:,}")
+    if cr.georef is not None:
+        print(f"  crs              : {cr.georef.crs or 'not declared'}")
     print(f"  threshold        : {cr.params['threshold']}")
+    print(f"  min region size  : {cr.params['min_area_px']} px")
     print(f"  runtime          : {cr.runtime_seconds}s")
     for w in cr.warnings:
         print(f"  warning          : {w}")

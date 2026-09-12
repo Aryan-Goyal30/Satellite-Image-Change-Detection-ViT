@@ -26,6 +26,11 @@ DEMO_IMAGES = os.path.join(ROOT, "images")                 # bundled sample pair
 EXAMPLES_DIR = os.path.join(ROOT, "examples")
 EXAMPLES_CATALOGUE = os.path.join(EXAMPLES_DIR, "catalogue.json")
 
+# --- analysis defaults ------------------------------------------------------
+# Connected components smaller than this are discarded as noise. Single source
+# of truth: the engine, the CLI and the UI all read it from here.
+DEFAULT_MIN_AREA_PX = 32
+
 # --- model ------------------------------------------------------------------
 CHECKPOINTS = os.path.join(ROOT, "checkpoints")
 DEFAULT_CHECKPOINT = os.path.join(CHECKPOINTS, "siamese_unet_r34_best.pt")

@@ -1,12 +1,16 @@
-"""Input validation for image pairs.
+"""Input validation for image pairs, including georeferenced GeoTIFFs.
 
 Pure checks against an engine's declared InputSpec. No UI framework is imported
 here, so the Streamlit app, the CLI and any future frontend apply exactly the
 same rules and produce the same messages.
 
 The checks are deliberately conservative: they reject what the current engine
-genuinely cannot accept (mismatched sizes, non-RGB-convertible data) and warn
-about things that merely degrade quality.
+genuinely cannot accept (mismatched sizes, non-RGB-convertible data,
+incompatible geospatial metadata) and warn about things that merely degrade
+quality or remove an optional output.
+
+GeoTIFF inputs are read for metadata only - CRS, geotransform, pixel size, band
+count. Nothing is reprojected, resampled or registered.
 """
 from __future__ import annotations
 
@@ -15,6 +19,8 @@ from typing import Optional
 
 import numpy as np
 from PIL import Image, UnidentifiedImageError
+
+from src.common.georef import pair_geo_issues, pair_georef, read_raster_info
 
 # Modes PIL can convert to RGB without inventing data.
 CONVERTIBLE_MODES = {"RGB", "RGBA", "L", "LA", "P", "I;16", "I", "F", "CMYK"}
@@ -35,6 +41,9 @@ class PairValidation:
     issues: list = field(default_factory=list)
     before_size: Optional[tuple] = None
     after_size: Optional[tuple] = None
+    before_raster: Optional[object] = None      # RasterInfo
+    after_raster: Optional[object] = None       # RasterInfo
+    georef: Optional[object] = None             # GeoRef, only when safe
 
     @property
     def errors(self) -> list:
@@ -48,6 +57,10 @@ class PairValidation:
     def ok(self) -> bool:
         return not self.errors
 
+    @property
+    def is_georeferenced(self) -> bool:
+        return self.georef is not None
+
 
 def open_image(source):
     """Open an uploaded file or path as a PIL image.
@@ -60,7 +73,7 @@ def open_image(source):
         return img
     except UnidentifiedImageError:
         raise ValueError("This file is not a readable image. Supported formats: "
-                         "PNG, JPEG, TIFF.")
+                         "PNG, JPEG, TIFF/GeoTIFF.")
     except OSError as e:
         raise ValueError(f"The image could not be read: it may be truncated or "
                          f"corrupt ({e}).")
@@ -99,7 +112,8 @@ def validate_pair(before, after, input_spec=None) -> PairValidation:
             v.issues.append(Issue("error",
                 f"{label}: this image has {n_bands} bands. This engine is a "
                 f"{channels}-channel {order} model and does not support "
-                f"multispectral or SAR products."))
+                f"multispectral or SAR products. Selecting bands arbitrarily "
+                f"would not be a defensible RGB composite."))
         elif img.mode in {"I;16", "I", "F"}:
             v.issues.append(Issue("warning",
                 f"{label}: single-band {img.mode} data will be replicated across "
@@ -122,9 +136,35 @@ def validate_pair(before, after, input_spec=None) -> PairValidation:
         except Exception:
             pass
 
+    # --- georeferencing: metadata only, never reprojection ------------------
+    try:
+        v.before_raster = read_raster_info(before)
+        v.after_raster = read_raster_info(after)
+        for level, message in pair_geo_issues(v.before_raster, v.after_raster):
+            v.issues.append(Issue(level, message))
+        if v.ok:
+            v.georef = pair_georef(v.before_raster, v.after_raster)
+    except Exception:
+        # Metadata problems must never block an ordinary image pair.
+        v.before_raster = v.after_raster = None
+        v.georef = None
+
     return v
 
 
 def to_rgb(img):
     """Convert to RGB the way the engine will, without inventing data."""
     return img if img.mode == "RGB" else img.convert("RGB")
+
+
+def describe_georef(validation) -> str:
+    """One-line, honest summary of the geospatial situation, for a UI."""
+    info = getattr(validation, "before_raster", None)
+    if info is None or not info.is_geotiff:
+        return ("Ordinary image pair: results are in pixels. Physical ground "
+                "area needs a georeferenced GeoTIFF.")
+    georef = validation.georef
+    if georef is not None and georef.has_scale:
+        return (f"GeoTIFF pair in {georef.crs}, {georef.gsd_m:g} m pixels. "
+                f"Ground area in m2 is available.")
+    return info.scale_note or "GeoTIFF without a usable metric scale."
