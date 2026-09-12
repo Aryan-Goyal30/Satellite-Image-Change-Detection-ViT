@@ -24,6 +24,7 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src import config
 from src.common import examples as example_catalogue
+from src.common.visualization import compare_to_ground_truth
 from src.core import registry
 from src.domains.built_environment.engine import overlay
 
@@ -34,6 +35,14 @@ ENGINE_NAME = "built_environment"
 
 @st.cache_resource
 def get_engine(name, ckpt):
+    """Resolve an engine by domain name.
+
+    The normal product path passes nothing: the engine resolves its own
+    configured checkpoint. A value different from that default is treated as an
+    explicit override (useful for testing a different checkpoint).
+    """
+    if not ckpt or ckpt == config.DEFAULT_CHECKPOINT_REL:
+        return registry.get(name)
     return registry.get(name, checkpoint=ckpt)
 
 
@@ -141,13 +150,10 @@ cols[0].image(overlay(out["after"], mask), caption="Change overlay", use_contain
 cols[1].image((mask * 255).astype(np.uint8), caption="Predicted mask", use_container_width=True)
 cols[2].image((prob * 255).astype(np.uint8), caption="Probability map", use_container_width=True)
 if gt_path:
+    # Evaluation logic lives in the shared helper, not in the UI.
     gt = np.array(Image.open(gt_path).convert("L")) > 127
-    h, w = mask.shape
-    tp = mask & gt; fp = mask & ~gt; fn = ~mask & gt
-    err = np.full((h, w, 3), 25, dtype=np.uint8)
-    err[tp] = (60, 200, 90); err[fp] = (230, 70, 70); err[fn] = (70, 130, 235)
-    inter = float(tp.sum()); f1 = 2 * inter / (2 * inter + fp.sum() + fn.sum() + 1e-9)
-    cols[3].image(err, caption=f"Error map - green TP / red FP / blue FN (F1 {f1:.3f})",
+    comparison = compare_to_ground_truth(cr, gt)
+    cols[3].image(comparison.error_map, caption=comparison.caption,
                   use_container_width=True)
 
 st.caption(f"Inference {cr.runtime_seconds}s  |  threshold {cr.params['threshold']}  |  "

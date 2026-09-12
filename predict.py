@@ -17,7 +17,6 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from src import config
 from src.core import registry
 from src.domains.built_environment.engine import overlay
 
@@ -28,7 +27,9 @@ def main():
     ap.add_argument("--after", required=True)
     ap.add_argument("--engine", default="built_environment",
                     help=f"engine to use. Available: {registry.available()}")
-    ap.add_argument("--checkpoint", default=config.DEFAULT_CHECKPOINT_REL)
+    ap.add_argument("--checkpoint", default=None,
+                    help="override; by default the engine resolves its own "
+                         "configured checkpoint")
     ap.add_argument("--out", default="outputs/predictions")
     ap.add_argument("--threshold", type=float, default=None,
                     help="default: value selected on the validation split")
@@ -41,7 +42,8 @@ def main():
                          "as <stem>_result_legacy.json")
     args = ap.parse_args()
 
-    engine = registry.get(args.engine, checkpoint=args.checkpoint)
+    engine = (registry.get(args.engine, checkpoint=args.checkpoint)
+              if args.checkpoint else registry.get(args.engine))
     out = engine.analyze(args.before, args.after, threshold=args.threshold,
                          min_area_px=args.min_area_px, gsd_m=args.gsd_m)
 
