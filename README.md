@@ -61,7 +61,7 @@ Confusion (test, pixels): TP 6,037,056 · FP 626,723 · FN 800,348 · TN 126,753
 
 Model `siamese-unet-resnet34` v1.0.0 · encoder `resnet34` ·
 best epoch 44 (best) of 50 run · trained on NVIDIA GeForce RTX 5060 Laptop GPU · training time 0:42:01 ·
-test inference 15.5s for 2,048 tiles.
+test inference 17.5s for 2,048 tiles.
 
 ### Stage 0 vs Stage 1 — same test tiles, same protocol
 
