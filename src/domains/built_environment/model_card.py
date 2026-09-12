@@ -79,6 +79,7 @@ def build_metadata(model_name, version, threshold, weights_hash=None):
         display_name=DISPLAY_NAME,
         task=TASK,
         capabilities=CAPABILITIES,
+        limitations=NOT_CAPABLE_OF,
         input_spec=INPUT_SPEC,
         provenance=provenance,
         version=version,

@@ -31,12 +31,14 @@ class EngineMetadata:
     version: str = "1.0.0"
     description: str = ""
     display_name: str = ""              # human-readable domain name for a UI
+    limitations: tuple = ()             # what this engine must NOT be said to do
 
     def to_dict(self) -> dict:
         return {"name": self.name, "domain": self.domain,
                 "display_name": self.display_name, "task": self.task,
                 "version": self.version, "description": self.description,
                 "capabilities": list(self.capabilities),
+                "limitations": list(self.limitations),
                 "input_spec": self.input_spec.to_dict(),
                 "provenance": self.provenance.to_dict()}
 

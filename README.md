@@ -168,11 +168,29 @@ python predict.py --before images/before1.png --after images/after1.png
 
 Writes a mask, probability map, overlay and a structured `result.json`.
 
-### 7. Demo UI
+### 7. Product V1 application
 
 ```bash
 streamlit run app.py
 ```
+
+**Product V1 is paired-image structural change analysis.** Three screens:
+
+| Screen | What it does |
+|---|---|
+| **Home** | Earth Guardian landing; the Built Environment Monitor is the one module that works. Environmental and Disaster monitors are shown as coming later, with no functionality. |
+| **Workspace** | Pick a bundled example by name, or drag and drop your own BEFORE / AFTER pair. Inputs are validated before anything runs. One **Analyze change** action. |
+| **Results** | Before/after, then the detected change (overlay, mask, probability map, and an error map when ground truth exists), then the summary, region details, and the model card. |
+
+Inference runs only when **Analyze change** is pressed; switching views,
+highlighting a region or opening a section reads the stored `ChangeResult`.
+
+Uploads must be an optical RGB pair of the **same dimensions** covering the same
+area. Multispectral and SAR products are not supported by this engine, and no
+ground area in m² is reported because the imagery carries no georeferencing.
+
+*Future (not implemented): choosing a location and dates and having imagery
+acquired for you; Environmental and Disaster monitors.*
 
 ---
 

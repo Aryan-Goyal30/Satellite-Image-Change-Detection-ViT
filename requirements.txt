@@ -7,5 +7,6 @@ numpy>=1.26
 pillow>=10.0
 matplotlib>=3.8
 opencv-python-headless>=4.9      # connected-component region counting
-streamlit>=1.35                  # demo UI only
+streamlit>=1.35                  # Product V1 application
+pandas>=2.0                      # region table in the results screen
 timm>=1.0                        # baseline/ (Stage 0 frozen ViT) only
