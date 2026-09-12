@@ -54,6 +54,46 @@ def f1_from_masks(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
     return 2 * inter / (2 * inter + fp.sum() + fn.sum() + 1e-9)
 
 
+def overlay(base_rgb: np.ndarray, mask: np.ndarray,
+            color=(255, 40, 40), alpha: float = 0.45) -> np.ndarray:
+    """Blend a binary mask over an image as a translucent colour layer.
+
+    Moved here from the Built Environment engine so applications import
+    rendering helpers from the shared layer, not from a domain. The engine
+    re-exports it for existing callers. Arithmetic unchanged.
+    """
+    out = base_rgb.astype(np.float32).copy()
+    col = np.array(color, dtype=np.float32)
+    out[mask] = (1 - alpha) * out[mask] + alpha * col
+    return out.clip(0, 255).astype(np.uint8)
+
+
+def draw_bboxes(image: np.ndarray, boxes, color=(255, 214, 10), thickness: int = 2) -> np.ndarray:
+    """Outline bounding boxes on an RGB image. Pure presentation, no analysis.
+
+    `boxes` is a sequence of (x, y, w, h) in pixel coordinates, as carried by
+    ChangeResult regions.
+    """
+    out = image.copy()
+    if out.ndim == 2:
+        # Single-channel views (mask, probability map) are promoted to RGB so a
+        # coloured outline can be drawn on them.
+        out = np.stack([out] * 3, axis=-1)
+    h_img, w_img = out.shape[:2]
+    col = np.array(color, dtype=out.dtype)
+    for x, y, w, h in boxes:
+        x0, y0 = max(int(x), 0), max(int(y), 0)
+        x1, y1 = min(int(x + w), w_img), min(int(y + h), h_img)
+        if x1 <= x0 or y1 <= y0:
+            continue
+        t = max(1, int(thickness))
+        out[y0:min(y0 + t, y1), x0:x1] = col          # top
+        out[max(y1 - t, y0):y1, x0:x1] = col          # bottom
+        out[y0:y1, x0:min(x0 + t, x1)] = col          # left
+        out[y0:y1, max(x1 - t, x0):x1] = col          # right
+    return out
+
+
 @dataclass(frozen=True)
 class GroundTruthComparison:
     """Everything an application needs to render a ground-truth comparison."""

@@ -34,6 +34,7 @@ from PIL import Image
 from src import config
 from src.common.model_loader import checkpoint_sha256, load_model
 from src.common.preprocessing import IMAGENET_MEAN, IMAGENET_STD, to_batched_tensor
+from src.common.visualization import overlay  # noqa: F401  (re-export)
 from src.core.types import ChangeResult, GeoRef, Layer, Quantities, Region
 from src.domains.built_environment import model_card
 
@@ -260,9 +261,6 @@ class ChangeEngine:
                 "probability": prob, "mask": mask, "before": a_np, "after": b_np}
 
 
-def overlay(base_rgb, mask, color=(255, 40, 40), alpha=0.45):
-    """Blend a binary mask over an image as a translucent colour layer."""
-    out = base_rgb.astype(np.float32).copy()
-    col = np.array(color, dtype=np.float32)
-    out[mask] = (1 - alpha) * out[mask] + alpha * col
-    return out.clip(0, 255).astype(np.uint8)
+# `overlay` now lives in the shared presentation layer. Re-exported here so
+# existing callers (predict.py, the src.inference.engine shim) keep working.
+__all__ = ["ChangeEngine", "overlay", "DEFAULT_CKPT"]

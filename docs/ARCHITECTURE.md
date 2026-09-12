@@ -78,6 +78,30 @@ The catalogue records only facts that exist: file paths, whether a ground-truth
 mask is available, and the measured ground-truth change fraction. These images
 carry **no location or acquisition-date metadata**, so none is recorded.
 
+### Product V1
+
+**Product V1 is paired-image structural change analysis.** The user supplies two
+images of the same area at different dates — from the bundled example catalogue
+or their own upload — and receives a pixel-level change analysis.
+
+```
+    User
+      -> Before + After imagery        (catalogue example or upload)
+      -> Built Environment Engine      (registry.get("built_environment"))
+      -> ChangeResult                  (schema v1)
+      -> Visual analysis               (overlay, mask, probability, error map,
+                                        summary, region details, model card)
+```
+
+Screens: **Home** (`ui/home.py`), **Workspace** (`ui/analysis.py`, input and
+validation) and **Results** (`ui/results.py`). `app.py` is only a router.
+Inference runs once, when Analyze is pressed; every later interaction reads the
+stored `ChangeResult`.
+
+**Future — not implemented:** choosing a location and dates and having imagery
+acquired for you, and the Environmental and Disaster monitors. The UI names
+those as coming later and provides no functionality for them.
+
 ### Application flow
 
 ```
