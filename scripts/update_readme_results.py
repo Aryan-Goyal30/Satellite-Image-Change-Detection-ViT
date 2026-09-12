@@ -7,9 +7,13 @@ Usage:  python scripts/update_readme_results.py
 """
 import json
 import os
+import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EV = os.path.join(ROOT, "outputs", "results", "evaluation.json")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src import config  # noqa: E402
+
+ROOT = config.ROOT
+EV = config.EVALUATION_JSON
 README = os.path.join(ROOT, "README.md")
 START, END = "<!-- RESULTS:START -->", "<!-- RESULTS:END -->"
 
@@ -29,7 +33,7 @@ def main():
         device = h.get("device", "n/a")
 
     comparison = ""
-    bpath = os.path.join(ROOT, "outputs", "results", "baseline_evaluation.json")
+    bpath = config.BASELINE_EVALUATION_JSON
     if os.path.exists(bpath):
         b = json.load(open(bpath))
         pm, vc, nr = (b["variants"][k] for k in ("poc_minmax", "val_calibrated", "poc_native_rule"))

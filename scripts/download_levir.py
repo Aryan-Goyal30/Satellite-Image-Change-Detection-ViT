@@ -11,7 +11,10 @@ import os, sys, time, zipfile, urllib.request, urllib.error
 
 BASE = "https://huggingface.co/datasets/satellite-image-deep-learning/LEVIR-CD/resolve/main/"
 FILES = {"train.zip": 1721956862, "val.zip": 246152048, "test.zip": 496305323}
-ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "levir_cd")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src import config  # noqa: E402
+
+ROOT = config.LEVIR_RAW
 RAW = os.path.join(ROOT, "raw")
 
 

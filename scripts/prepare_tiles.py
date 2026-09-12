@@ -22,9 +22,12 @@ import sys
 import numpy as np
 from PIL import Image
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "data", "levir_cd")
-DST = os.path.join(ROOT, "data", "levir_cd_tiles")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src import config  # noqa: E402
+
+ROOT = config.ROOT
+SRC = config.LEVIR_RAW
+DST = config.LEVIR_TILES
 SPLITS = ("train", "val", "test")
 SUBDIRS = ("A", "B", "label")
 

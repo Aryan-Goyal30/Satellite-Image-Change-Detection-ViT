@@ -54,14 +54,16 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.data.levir import IMAGENET_MEAN, IMAGENET_STD, LevirCDTiles
+from src import config
+from src.common.preprocessing import IMAGENET_MEAN, IMAGENET_STD
+from src.domains.built_environment.data.levir import LevirCDTiles
 from src.eval.metrics import ConfusionAccumulator, ThresholdSweep, format_metrics
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TILES = os.path.join(ROOT, "data", "levir_cd_tiles")
-RESULTS = os.path.join(ROOT, "outputs", "results")
-STAGE1_EVAL = os.path.join(RESULTS, "evaluation.json")
-STAGE1_CKPT = os.path.join(ROOT, "checkpoints", "siamese_unet_r34_best.pt")
+ROOT = config.ROOT
+TILES = config.LEVIR_TILES
+RESULTS = config.RESULTS
+STAGE1_EVAL = config.EVALUATION_JSON
+STAGE1_CKPT = config.DEFAULT_CHECKPOINT
 
 VIT_NAME = "vit_base_patch16_224"          # same model string as baseline/main.py
 POC_SIGMA = 1.5                            # baseline/main.py default sensitivity

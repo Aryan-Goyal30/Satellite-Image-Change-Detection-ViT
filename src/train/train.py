@@ -18,14 +18,15 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.data.levir import LevirCDTiles
+from src import config
+from src.domains.built_environment.data.levir import LevirCDTiles
 from src.eval.metrics import ConfusionAccumulator, ThresholdSweep
 from src.models.siamese_unet import build_model
 from src.train.losses import BCEDiceLoss
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TILES = os.path.join(ROOT, "data", "levir_cd_tiles")
-CKPT_DIR = os.path.join(ROOT, "checkpoints")
+ROOT = config.ROOT
+TILES = config.LEVIR_TILES
+CKPT_DIR = config.CHECKPOINTS
 
 
 def get_args():

@@ -40,7 +40,7 @@
   },
   "n_val_tiles": 1024,
   "n_test_tiles": 2048,
-  "test_seconds": 15.499910116195679,
+  "test_seconds": 17.540931224822998,
   "device": "NVIDIA GeForce RTX 5060 Laptop GPU",
   "pr_curve_test": {
     "threshold": [

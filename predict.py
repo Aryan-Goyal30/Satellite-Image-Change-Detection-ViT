@@ -11,14 +11,16 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from src.inference.engine import ChangeEngine, overlay
+from src import config
+from src.core import registry
+from src.domains.built_environment.engine import overlay
 
 
 def main():
     ap = argparse.ArgumentParser(description="Earth Guardian - Built-Environment Change Monitor")
     ap.add_argument("--before", required=True)
     ap.add_argument("--after", required=True)
-    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r34_best.pt")
+    ap.add_argument("--checkpoint", default=config.DEFAULT_CHECKPOINT_REL)
     ap.add_argument("--out", default="outputs/predictions")
     ap.add_argument("--threshold", type=float, default=None,
                     help="default: value selected on the validation split")
@@ -28,7 +30,7 @@ def main():
     ap.add_argument("--json", action="store_true", help="print JSON only")
     args = ap.parse_args()
 
-    engine = ChangeEngine(args.checkpoint)
+    engine = registry.get("built_environment", checkpoint=args.checkpoint)
     out = engine.analyze(args.before, args.after, threshold=args.threshold,
                          min_area_px=args.min_area_px, gsd_m=args.gsd_m)
     res, mask, prob = out["result"], out["mask"], out["probability"]
