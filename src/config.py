@@ -19,6 +19,13 @@ LEVIR_RAW = os.path.join(DATA_DIR, "levir_cd")             # A/ B/ label/ + raw/
 LEVIR_TILES = os.path.join(DATA_DIR, "levir_cd_tiles")     # {train,val,test}/{A,B,label}
 DEMO_IMAGES = os.path.join(ROOT, "images")                 # bundled sample pairs
 
+# --- bundled example catalogue ----------------------------------------------
+# The current input source. A future imagery provider (location + date) will
+# occupy the same role; applications resolve inputs through this, never by
+# knowing a dataset's directory layout.
+EXAMPLES_DIR = os.path.join(ROOT, "examples")
+EXAMPLES_CATALOGUE = os.path.join(EXAMPLES_DIR, "catalogue.json")
+
 # --- model ------------------------------------------------------------------
 CHECKPOINTS = os.path.join(ROOT, "checkpoints")
 DEFAULT_CHECKPOINT = os.path.join(CHECKPOINTS, "siamese_unet_r34_best.pt")

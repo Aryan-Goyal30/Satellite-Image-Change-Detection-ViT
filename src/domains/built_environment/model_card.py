@@ -13,9 +13,20 @@ from src.core.types import InputSpec, OperatingEnvelope, Provenance
 from src.common.preprocessing import IMAGENET_MEAN, IMAGENET_STD
 
 DOMAIN = "built_environment"
-TASK = "binary change detection (built environment)"
+DISPLAY_NAME = "Built Environment"
+TASK = "Binary structural change detection"
 CAPABILITIES = ("structural_change",)
 DATASET = "LEVIR-CD"
+
+# What this engine must NOT be described as doing. Kept next to the claims so
+# the two cannot drift apart.
+NOT_CAPABLE_OF = (
+    "distinguishing construction from demolition",
+    "identifying or counting individual buildings",
+    "reporting real-world ground area",
+    "flood, fire, deforestation or snow/ice detection",
+    "retrieving imagery from a satellite provider",
+)
 
 # Documentation only - the live value comes from the checkpoint.
 VALIDATED_THRESHOLD = 0.625
@@ -65,6 +76,7 @@ def build_metadata(model_name, version, threshold, weights_hash=None):
     return EngineMetadata(
         name=model_name,
         domain=DOMAIN,
+        display_name=DISPLAY_NAME,
         task=TASK,
         capabilities=CAPABILITIES,
         input_spec=INPUT_SPEC,
