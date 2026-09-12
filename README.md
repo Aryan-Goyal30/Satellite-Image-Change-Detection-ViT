@@ -245,18 +245,42 @@ Full rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Repository layout
 
 ```
-baseline/          Stage 0 POC (frozen ViT + RGB heuristics) - preserved
-scripts/           dataset download + tiling
-src/data/          LEVIR-CD dataset and augmentation
-src/models/        Siamese U-Net
-src/train/         loss + training loop
-src/eval/          metrics + evaluation protocol
-src/inference/     change-analysis engine (product core)
-src/viz/           presentation figures
-predict.py         CLI
-app.py             Streamlit demo
-docs/              architecture + dataset notes
+src/config.py                       all project paths in one place
+src/core/                           domain-independent contracts
+    types.py                          ChangeResult, Layer, Region, Quantities,
+                                      Provenance, GeoRef, InputSpec
+    engine.py                         ChangeEngineProtocol, EngineMetadata
+    registry.py                       engine name -> implementation
+src/common/                         shared services
+    preprocessing.py                  normalisation contract
+    model_loader.py                   checkpoint -> model
+src/domains/
+    built_environment/              the one implemented domain
+        data/levir.py                 LEVIR-CD dataset and augmentation
+        engine.py                     inference engine (product core)
+        model_card.py                 claims and operating envelope
+    (environmental, disaster)        FUTURE - not implemented
+src/models/siamese_unet.py          architecture (shared)
+src/train/                          loss + training loop
+src/eval/                           metrics + evaluation protocol
+src/viz/                            presentation figures
+src/data/, src/inference/           compatibility shims -> domain package
+baseline/                           Stage 0 POC (frozen ViT) - preserved
+scripts/                            dataset download + tiling
+predict.py                          CLI
+app.py                              Streamlit demo
+docs/                               architecture + dataset notes
 ```
+
+Applications ask the registry for a domain rather than importing a model:
+
+```python
+from src.core import registry
+engine = registry.get("built_environment")
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the layering and the
+result contract.
 
 ---
 

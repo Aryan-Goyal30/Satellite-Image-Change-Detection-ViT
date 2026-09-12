@@ -21,21 +21,14 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.data.levir import LevirCDTiles
+from src import config
+from src.domains.built_environment.data.levir import LevirCDTiles
 from src.eval.metrics import ConfusionAccumulator, ThresholdSweep, format_metrics
-from src.models.siamese_unet import build_model
+from src.common.model_loader import load_model  # re-exported for compatibility
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TILES = os.path.join(ROOT, "data", "levir_cd_tiles")
-RESULTS = os.path.join(ROOT, "outputs", "results")
-
-
-def load_model(ckpt_path, device):
-    ck = torch.load(ckpt_path, map_location=device, weights_only=False)
-    model = build_model(ck.get("encoder", "resnet34"), pretrained=False).to(device)
-    model.load_state_dict(ck["model_state"])
-    model.eval()
-    return model, ck
+ROOT = config.ROOT
+TILES = config.LEVIR_TILES
+RESULTS = config.RESULTS
 
 
 @torch.no_grad()
@@ -61,7 +54,7 @@ def run_split(model, split, device, batch_size, workers, threshold, amp, tiles_r
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tiles", default=None, help="override tile root (default data/levir_cd_tiles)")
-    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r34_best.pt")
+    ap.add_argument("--checkpoint", default=config.DEFAULT_CHECKPOINT_REL)
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--amp", action="store_true", default=True)

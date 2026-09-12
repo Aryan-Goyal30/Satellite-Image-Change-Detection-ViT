@@ -2,9 +2,9 @@
 
     streamlit run app.py
 
-This is a THIN presentation layer. Every computation happens in
-src/inference/engine.py, so the same engine can later sit behind a REST API
-without touching this file.
+This is a THIN presentation layer. It asks the Earth Guardian registry for a
+domain engine and never imports a model, so the same engine can later sit behind
+a REST API - and a future domain can be selected here without changing this file.
 """
 import io
 import json
@@ -16,16 +16,16 @@ import streamlit as st
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from src.inference.engine import ChangeEngine, overlay
-
-ROOT = os.path.dirname(os.path.abspath(__file__))
+from src import config
+from src.core import registry
+from src.domains.built_environment.engine import overlay
 
 st.set_page_config(page_title="Earth Guardian", page_icon="EG", layout="wide")
 
 
 @st.cache_resource
 def get_engine(ckpt):
-    return ChangeEngine(ckpt)
+    return registry.get("built_environment", checkpoint=ckpt)
 
 
 @st.cache_data
@@ -54,7 +54,7 @@ st.caption("Built-Environment Change Monitor - structural / building change dete
 
 with st.sidebar:
     st.header("Model")
-    ckpt = st.text_input("Checkpoint", "checkpoints/siamese_unet_r34_best.pt")
+    ckpt = st.text_input("Checkpoint", config.DEFAULT_CHECKPOINT_REL)
     try:
         engine = get_engine(ckpt)
     except Exception as e:
@@ -82,18 +82,18 @@ src = st.radio("Input", ["Bundled example", "Upload a pair"], horizontal=True)
 before = after = None
 
 if src == "Bundled example":
-    tiles = os.path.join(ROOT, "data", "levir_cd_tiles", "test", "A")
-    demo = os.path.join(ROOT, "images")
+    tiles = os.path.join(config.LEVIR_TILES, "test", "A")
+    demo = config.DEMO_IMAGES
     if os.path.isdir(tiles) and os.listdir(tiles):
         only_change = st.checkbox(
             "Only tiles whose ground truth contains change (>= 5% of pixels)", value=True,
             help="Filters on the ground-truth label, not on model output.")
-        names = list_tiles(os.path.join(ROOT, "data", "levir_cd_tiles", "test", "label"),
+        names = list_tiles(os.path.join(config.LEVIR_TILES, "test", "label"),
                            only_change)
         pick = st.selectbox("LEVIR-CD test tile (held-out test split)", names)
         before = os.path.join(tiles, pick)
-        after = os.path.join(ROOT, "data", "levir_cd_tiles", "test", "B", pick)
-        gt_path = os.path.join(ROOT, "data", "levir_cd_tiles", "test", "label", pick)
+        after = os.path.join(config.LEVIR_TILES, "test", "B", pick)
+        gt_path = os.path.join(config.LEVIR_TILES, "test", "label", pick)
     else:
         pick = st.selectbox("Sample scene", ["before1.png / after1.png",
                                              "before.png / after.png",

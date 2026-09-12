@@ -24,14 +24,14 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.data.levir import LevirCDTiles, denormalize
-from src.eval.evaluate import load_model
-from src.models.siamese_unet import build_model
+from src.domains.built_environment.data.levir import LevirCDTiles, denormalize
+from src import config
+from src.common.model_loader import load_model
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TILES = os.path.join(ROOT, "data", "levir_cd_tiles")
-FIGS = os.path.join(ROOT, "outputs", "figures")
-RESULTS = os.path.join(ROOT, "outputs", "results")
+ROOT = config.ROOT
+TILES = config.LEVIR_TILES
+FIGS = config.FIGURES
+RESULTS = config.RESULTS
 
 BG = "#0D1117"
 FG = "white"
@@ -194,7 +194,7 @@ def fig3_metrics(ev, path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--checkpoint", default="checkpoints/siamese_unet_r34_best.pt")
+    ap.add_argument("--checkpoint", default=config.DEFAULT_CHECKPOINT_REL)
     ap.add_argument("--n-scan", type=int, default=600)
     ap.add_argument("--tiles", default=None, help="override tile root")
     args = ap.parse_args()

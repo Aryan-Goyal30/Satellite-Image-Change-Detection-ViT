@@ -24,16 +24,17 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.data.levir import LevirCDTiles, denormalize
-from src.eval.evaluate import load_model
+from src.domains.built_environment.data.levir import LevirCDTiles, denormalize
+from src import config
+from src.common.model_loader import load_model
 from src.eval.evaluate_baseline import (load_vit, norm_calibrated, norm_poc_minmax,
                                         patch_distance, upsample)
 from src.viz.figures import ACCENT, BG, FG, _style, error_map, tile_f1
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TILES = os.path.join(ROOT, "data", "levir_cd_tiles")
-FIGS = os.path.join(ROOT, "outputs", "figures")
-RESULTS = os.path.join(ROOT, "outputs", "results")
+ROOT = config.ROOT
+TILES = config.LEVIR_TILES
+FIGS = config.FIGURES
+RESULTS = config.RESULTS
 
 S0_COLORS = {"poc_minmax": "#6E7885", "val_calibrated": "#AEB6C1"}
 SHORT = {"poc_minmax": "Stage 0 - frozen ViT, POC min-max (not trained)",
