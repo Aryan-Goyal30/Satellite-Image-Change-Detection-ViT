@@ -1,0 +1,95 @@
+"""Shared presentation helpers.
+
+Rendering and ground-truth comparison used by applications. Applications call
+into this module; this module knows nothing about them:
+
+    application  ->  src.common.visualization        (never the reverse)
+
+It must NOT import Streamlit or any other UI framework, so the CLI, the current
+demo and a future frontend all render and score identically.
+
+Inputs are the Earth Guardian result contract (ChangeResult) plus, optionally, a
+ground-truth mask. No model, dataset or engine is imported here.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+import numpy as np
+
+# Error-map colours (RGB), unchanged from the original inline implementation.
+TP_COLOR = (60, 200, 90)
+FP_COLOR = (230, 70, 70)
+FN_COLOR = (70, 130, 235)
+BACKGROUND_LEVEL = 25
+
+
+def error_map(pred_mask: np.ndarray, gt_mask: np.ndarray) -> np.ndarray:
+    """Colour-coded TP / FP / FN map over a dark background.
+
+    Identical arithmetic and colours to the previous inline implementation.
+    """
+    h, w = pred_mask.shape
+    tp = pred_mask & gt_mask
+    fp = pred_mask & ~gt_mask
+    fn = ~pred_mask & gt_mask
+    img = np.full((h, w, 3), BACKGROUND_LEVEL, dtype=np.uint8)
+    img[tp] = TP_COLOR
+    img[fp] = FP_COLOR
+    img[fn] = FN_COLOR
+    return img
+
+
+def f1_from_masks(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
+    """F1 of the change class for one pair of masks.
+
+    Kept bit-identical to the previous inline expression, including the 1e-9
+    guard and the float cast of the intersection.
+    """
+    tp = pred_mask & gt_mask
+    fp = pred_mask & ~gt_mask
+    fn = ~pred_mask & gt_mask
+    inter = float(tp.sum())
+    return 2 * inter / (2 * inter + fp.sum() + fn.sum() + 1e-9)
+
+
+@dataclass(frozen=True)
+class GroundTruthComparison:
+    """Everything an application needs to render a ground-truth comparison."""
+    error_map: np.ndarray
+    f1: float
+    tp: int
+    fp: int
+    fn: int
+
+    @property
+    def caption(self) -> str:
+        return f"Error map - green TP / red FP / blue FN (F1 {self.f1:.3f})"
+
+    def to_dict(self) -> dict:
+        """JSON-safe summary. The image array stays out by design."""
+        return {"f1": self.f1, "tp": self.tp, "fp": self.fp, "fn": self.fn}
+
+
+def compare_to_ground_truth(result, gt_mask: np.ndarray,
+                            layer: Optional[str] = None) -> GroundTruthComparison:
+    """Compare a ChangeResult layer against a ground-truth mask.
+
+    Args:
+        result:   a ChangeResult
+        gt_mask:  boolean ground-truth mask, same shape as the prediction
+        layer:    layer name; defaults to the result's primary layer
+    """
+    pred = result.layer(layer).mask if layer else result.primary_layer.mask
+    if pred.shape != gt_mask.shape:
+        raise ValueError(
+            f"prediction {pred.shape} and ground truth {gt_mask.shape} differ in shape")
+    tp = pred & gt_mask
+    fp = pred & ~gt_mask
+    fn = ~pred & gt_mask
+    return GroundTruthComparison(
+        error_map=error_map(pred, gt_mask),
+        f1=f1_from_masks(pred, gt_mask),
+        tp=int(tp.sum()), fp=int(fp.sum()), fn=int(fn.sum()),
+    )

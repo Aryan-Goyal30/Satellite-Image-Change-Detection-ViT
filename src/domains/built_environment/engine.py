@@ -57,8 +57,11 @@ class ChangeEngine:
 
     domain = model_card.DOMAIN
 
-    def __init__(self, checkpoint=DEFAULT_CKPT, device=None, tile=256, overlap=64):
-        path = config.resolve(checkpoint)
+    def __init__(self, checkpoint=None, device=None, tile=256, overlap=64):
+        # The engine resolves its own configured default, so applications can
+        # call registry.get("built_environment") without knowing a path.
+        # An explicit checkpoint is still accepted, for CLI use and testing.
+        path = config.resolve(checkpoint or DEFAULT_CKPT)
         if not os.path.exists(path):
             raise FileNotFoundError(
                 f"Checkpoint not found: {path}\nTrain one first: python -m src.train.train")

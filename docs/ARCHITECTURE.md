@@ -179,6 +179,7 @@ always `null`. There is no code path that fabricates it.
 | `src/common/preprocessing.py` | Normalisation constants and tensor conversion |
 | `src/common/model_loader.py` | Checkpoint reading, architecture resolution, SHA-256 |
 | `src/common/examples.py` | Example catalogue loader — the current input source |
+| `src/common/visualization.py` | Error map, F1 and ground-truth comparison for applications |
 | `examples/catalogue.json` | Bundled example definitions (logical ID → file paths) |
 | `scripts/build_example_catalogue.py` | Regenerates the catalogue from prepared data |
 | `src/domains/built_environment/data/levir.py` | LEVIR-CD dataset and augmentation |
