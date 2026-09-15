@@ -8,7 +8,7 @@ pixel level, backed by a supervised model trained and evaluated on public
 benchmarks, not a heuristic.
 
 > **Scope — read this first.** Earth Guardian has two working monitors today:
-> **Built Environment** (building construction/demolition in optical RGB
+> **Construction & Urban Change** (building construction/demolition in optical RGB
 > imagery) and **Environment** (forest loss in six-band Sentinel-2 imagery).
 > Neither is validated outside the geography and sensor it was trained on;
 > neither reports a calibrated probability; there is no real-time or
@@ -30,8 +30,8 @@ benchmarks, not a heuristic.
         │  What changed?                │   which layer: structural
         │  Where, exactly? (pixel mask) │   change / forest loss
         │  How much? (%, regions)       │
-        │  Which direction? (optional,  │   Built Environment only:
-        │   Built Environment only)     │   Construction / Demolition /
+        │  Which direction? (optional,  │   Construction & Urban Change only:
+        │   Construction & Urban Change only)     │   Construction / Demolition /
         └───────────────────────────────┘   Uncertain
 ```
 
@@ -43,7 +43,7 @@ produced it. See [The structured result](#the-structured-result).
 
 ## Current capabilities
 
-| | Built Environment | Environment |
+| | Construction & Urban Change | Environment |
 |---|---|---|
 | **Detects** | Building construction/demolition | Forest loss |
 | **Input** | 2× RGB image, same size | 2× Sentinel-2, **all six bands**: B02 B03 B04 B08 B11 B12 |
@@ -192,7 +192,7 @@ test inference 17.5s for 2,048 tiles.
 
 ## Direction classifier
 
-**Optional, opt-in capability of the Built Environment monitor.** The primary
+**Optional, opt-in capability of the Construction & Urban Change monitor.** The primary
 detector answers *did this area change*, symmetrically — it cannot say
 whether a change was construction or demolition (its training task is
 direction-blind by design; see [Method](#method)). A **separate, frozen
@@ -260,7 +260,7 @@ from the Amazon, 46 from Southeast Asia.
 
 Threshold **0.91**, selected on validation only, applied to test unchanged.
 
-**This is meaningfully lower than Built Environment, on purpose reported
+**This is meaningfully lower than Construction & Urban Change, on purpose reported
 honestly, not hidden:**
 
 - **Region-level agreement is poor** (region F1 0.1136) even though pixel
@@ -276,7 +276,7 @@ honestly, not hidden:**
   from the training data entirely (the JRC data endpoint fails for every Congo
   Basin longitude tried) — this says nothing about African forest loss.
 - This is a **V1 research model**: one training run, one dataset version, no
-  hyperparameter search, less mature than the Built Environment benchmark.
+  hyperparameter search, less mature than the Construction & Urban Change benchmark.
 
 Three curated examples from the frozen v24 **test** split ship with the
 product (never chosen by how well the model scores on them — see
@@ -324,7 +324,7 @@ pip install -r requirements.txt
 
 **Neither the datasets nor the trained checkpoints are in this repository** —
 see [Reproducibility](#reproducibility-and-large-local-assets). To run the
-Built Environment monitor from scratch:
+Construction & Urban Change monitor from scratch:
 
 ```bash
 python scripts/download_levir.py            # ~2.5 GB, resumable, official split
@@ -421,7 +421,7 @@ Environment, 3-channel; the Environment engine uses the same design with a
 class-imbalanced (LEVIR-CD ~95% unchanged pixels; the environment training set
 uses `pos_weight` 13.364); plain BCE alone collapses to predicting "no change".
 
-**Task symmetry (Built Environment).** The label marks that pixels differ, not
+**Task symmetry (Construction & Urban Change).** The label marks that pixels differ, not
 in which direction, so the task is symmetric under swapping the two dates —
 which is why date-swap is a valid training augmentation, and why the primary
 detector genuinely cannot distinguish construction from demolition on its own.
@@ -499,12 +499,12 @@ result contract.
 
 | Domain | Train | Evaluate |
 |---|---|---|
-| Built Environment | `python -m src.train.train --epochs 50 --batch-size 32` | `python -m src.eval.evaluate` |
+| Construction & Urban Change | `python -m src.train.train --epochs 50 --batch-size 32` | `python -m src.eval.evaluate` |
 | Direction classifier | `python scripts/train_direction_classifier.py` | `python scripts/evaluate_direction_classifier.py` |
 | Environment (E2, production) | `python scripts/train_environment_baseline.py` | `python scripts/evaluate_environment_baseline.py` |
 | Stage 0 control | — (frozen, untrained) | `python -m src.eval.evaluate_baseline` |
 
-Figures: `python -m src.viz.figures` (Built Environment) and
+Figures: `python -m src.viz.figures` (Construction & Urban Change) and
 `python -m src.viz.compare_figures` (Stage 0 vs Stage 1) write to
 `outputs/figures/`. Environment-specific figures/reports:
 `scripts/environment_baseline_model_card.py`,
@@ -528,7 +528,7 @@ neither is committed:
 | LEVIR-CD + tiles | ~2.5 GB+ | `data/levir_cd/`, `data/levir_cd_tiles/` | `scripts/download_levir.py`, `scripts/prepare_tiles.py` |
 | S2Looking | large | `data/s2looking/` | `scripts/download_s2looking.py` |
 | Environment dataset v24 | ~503 MB | `data/environment/dataset_v24/` | `scripts/build_environment_dataset_v24.py` (built on the v2.1–v2.3 lineage — see [docs/DATASET.md](docs/DATASET.md)) |
-| Built Environment checkpoint | ~97 MB | `checkpoints/siamese_unet_r34_best.pt` | `python -m src.train.train` |
+| Construction & Urban Change checkpoint | ~97 MB | `checkpoints/siamese_unet_r34_best.pt` | `python -m src.train.train` |
 | Direction classifier checkpoint | ~43 MB | `checkpoints/direction_resnet18_both_best.pt` | `scripts/train_direction_classifier.py` |
 | **Environment production checkpoint** | **~97 MB** | `outputs/environment_baseline/environment_sixband_best.pt` | `scripts/train_environment_baseline.py` |
 
@@ -547,7 +547,7 @@ tracked, and work without the 34 GB `data/` directory.
 
 ## Limitations
 
-**Built Environment**
+**Construction & Urban Change**
 - Buildings only. Trained on LEVIR-CD; vegetation, water, fire and snow change
   are not represented in the labels and are not detected.
 - One geography — all training data is from 20 regions in Texas, USA.
@@ -598,7 +598,7 @@ tracked, and work without the 34 GB `data/` directory.
 
 ## Future work
 
-- Cross-dataset generalization testing for Built Environment (e.g. WHU-CD) and
+- Cross-dataset generalization testing for Construction & Urban Change (e.g. WHU-CD) and
   broader regional validation for Environment.
 - An imagery provider (location + date search) to replace manual upload —
   not implemented; the current input source is the bundled example catalogue

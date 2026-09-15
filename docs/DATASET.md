@@ -76,7 +76,7 @@ the caller. We do not fabricate ground areas.
 ## S2Looking
 
 Used only to train and evaluate the **optional direction classifier**
-(Construction / Demolition / Uncertain) — the Built Environment detector and
+(Construction / Demolition / Uncertain) — the Construction & Urban Change detector and
 `ChangeResult` schema do not depend on it.
 
 **Source:** Shen et al., *S2Looking: A Satellite Side-Looking Dataset for
@@ -254,7 +254,7 @@ subset for the product's bundled demo — this is **not** a substitute for the
 full datasets above, only enough to run the UI without a local `data/`
 directory:
 
-- Built Environment: LEVIR-CD **test**-split tiles (never train/val) plus 3
+- Construction & Urban Change: LEVIR-CD **test**-split tiles (never train/val) plus 3
   untraced sample pairs with no recorded split membership.
 - Environment: 3 samples copied from the frozen v24 **test** split, chosen on
   ground-truth extent, spatial coherence and image quality only — never on how

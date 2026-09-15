@@ -7,7 +7,7 @@ what is implemented and what is planned.
 **What the system does today:** given a pair of co-located images of the same
 place at two dates, a domain engine produces a pixel-level **binary** change
 mask, quantified in pixels and percentage, with per-region statistics and a
-confidence value — for either of two domains, **Built Environment** (RGB,
+confidence value — for either of two domains, **Construction & Urban Change** (RGB,
 structural change, optionally direction-classified) or **Environment**
 (six-band Sentinel-2, forest loss). A third domain, **Disaster**, is named in
 the product as planned but has no model and no code.
@@ -93,12 +93,12 @@ to change.
 
 The catalogue records only facts that exist: file paths, whether a
 ground-truth mask is available, and (for Environment entries) the declared
-band list, GSD and CRS. Built Environment entries carry **no location or
+band list, GSD and CRS. Construction & Urban Change entries carry **no location or
 acquisition-date metadata**, so none is recorded for them.
 
 ### Domain-aware input preparation — `PreparedPair`
 
-Engines do not share an input contract: the Built Environment detector reads
+Engines do not share an input contract: the Construction & Urban Change detector reads
 3-channel RGB; the Environment detector reads six Sentinel-2 bands as surface
 reflectance and refuses anything else. `src/common/pair_input.py` resolves
 that difference once, for both applications:
@@ -112,7 +112,7 @@ out = engine.analyze(pair.before, pair.after, georef=pair.georef)
 
 It **dispatches only** — no normalisation, no band arithmetic, no model
 knowledge lives here. Each adapter (`src.common.image_input:prepare_rgb_pair`
-for Built Environment, `src.domains.environment.inputs:prepare_application_pair`
+for Construction & Urban Change, `src.domains.environment.inputs:prepare_application_pair`
 for Environment) is resolved lazily by import path, for the same reason the
 engine registry is lazy: naming a domain must not import that domain's
 dependencies.
@@ -193,7 +193,7 @@ strongly the model scored the patch. It is *not* a calibrated probability that
 the region is a true change, and it has not been validated per region — only
 the pixel-level metrics have.
 
-**Region direction (schema 1.2, Built Environment only, optional).**
+**Region direction (schema 1.2, Construction & Urban Change only, optional).**
 `Region.direction` is one of `"construction"`, `"demolition"` or
 `"uncertain"`, with `direction_score` the classifier's score for the predicted
 class. Both stay `None` unless direction classification was explicitly
@@ -230,7 +230,7 @@ registration**, so it will not pretend two rasters are aligned when they are
 not. Metadata is read with Pillow's TIFF tags — no rasterio or GDAL dependency
 anywhere in the project.
 
-**Model input limitation.** The Built Environment model is 3-channel RGB; RGB
+**Model input limitation.** The Construction & Urban Change model is 3-channel RGB; RGB
 and RGBA GeoTIFFs are supported, and products with more than four bands are
 rejected rather than having arbitrary bands selected as a fake RGB composite.
 The Environment model requires exactly the six declared Sentinel-2 bands as
@@ -276,7 +276,7 @@ ChangeResult
   schema_version   "1.2"
   layers[]         name, mask, score_map, threshold, mean_confidence
   regions[]        id, area_px, bbox, centroid, confidence,
-                   direction, direction_score        (1.2, optional, Built Environment only)
+                   direction, direction_score        (1.2, optional, Construction & Urban Change only)
   quantities       changed_pixels, total_pixels, changed_percentage, area_m2
   provenance       model, version, task, dataset, threshold, weights_hash,
                    evaluation_protocol, operating_envelope,
@@ -297,7 +297,7 @@ the earlier additions did not force a schema bump; 1.2 exists because
 `score_calibrated` states whether a layer's scores may be read as
 probabilities: `False` means the threshold is an operating point on a
 validation split and the 0–1 scores are **not** calibrated likelihoods; `None`
-means the engine has made no claim either way. The Built Environment engine
+means the engine has made no claim either way. The Construction & Urban Change engine
 currently makes no claim; the Environment engine explicitly declares `false`.
 
 **Area rule, enforced in code:** `area_m2` is produced only by
@@ -308,7 +308,7 @@ distance is supplied. There is no code path that fabricates it.
 
 ## 4. The pipeline in use today
 
-### Built Environment
+### Construction & Urban Change
 
 ```
    BEFORE image                AFTER image        (any size, co-located)
@@ -384,15 +384,15 @@ distance is supplied. There is no code path that fabricates it.
 | `src/core/registry.py` | Engine name -> implementation, resolved lazily |
 | `src/common/pair_input.py` | Domain-aware input dispatch; `PreparedPair` (model input vs display preview) |
 | `src/common/tiling.py` | Shared sliding-window inference, Hann blending — one implementation for both domains |
-| `src/common/preprocessing.py` | Built Environment normalisation constants and tensor conversion |
+| `src/common/preprocessing.py` | Construction & Urban Change normalisation constants and tensor conversion |
 | `src/common/model_loader.py` | Checkpoint reading, architecture resolution via `register_builder()`, SHA-256 |
 | `src/common/examples.py` | Example catalogue loader — the current input source |
 | `src/common/visualization.py` | Overlay, error map, F1 and ground-truth comparison for applications |
 | `src/common/regions.py` | Connected-component regions, min-area filtering, region confidence |
 | `src/common/georef.py` | GeoTIFF CRS / geotransform / pixel size, read from TIFF tags |
-| `src/common/image_input.py` | Built Environment's RGB (+ GeoTIFF) input adapter |
+| `src/common/image_input.py` | Construction & Urban Change's RGB (+ GeoTIFF) input adapter |
 | `examples/catalogue.json` | Bundled example definitions (logical ID → file paths, per-domain metadata) |
-| `scripts/build_example_catalogue.py` | Regenerates the Built Environment catalogue entries from prepared data |
+| `scripts/build_example_catalogue.py` | Regenerates the Construction & Urban Change catalogue entries from prepared data |
 | `scripts/build_environment_examples.py` | Copies the 3 curated Environment demo examples from the frozen v24 test split |
 | `src/domains/built_environment/data/levir.py` | LEVIR-CD dataset and augmentation |
 | `src/domains/built_environment/data/s2looking.py` | Region-level construction/demolition target derivation — research only, not imported by the engine, CLI or UI |
@@ -405,7 +405,7 @@ distance is supplied. There is no code path that fabricates it.
 | `src/models/siamese_unet.py` | Architecture only (shared, not domain-specific) |
 | `src/train/` | Loss and training loop |
 | `src/eval/metrics.py` | Domain-agnostic metrics |
-| `src/eval/evaluate.py` | Built Environment: validation-threshold selection, then test evaluation |
+| `src/eval/evaluate.py` | Construction & Urban Change: validation-threshold selection, then test evaluation |
 | `src/eval/evaluate_baseline.py` | Stage 0 frozen-ViT baseline, same protocol |
 | `src/viz/` | Presentation figures |
 | `predict.py`, `app.py` | CLI and Streamlit, both through the registry and `pair_input` |
@@ -474,7 +474,7 @@ honest protocol; `src/eval/evaluate.py` additionally reports what test-optimal
 domains follow this rule.
 
 **Task symmetry, and why direction is a separate model.**
-The Built Environment task is binary: the label marks that pixels differ, not
+The Construction & Urban Change task is binary: the label marks that pixels differ, not
 in which direction. The task is therefore symmetric under swapping the two
 dates, which is why date-swap is a valid training augmentation for the primary
 detector — and why that detector genuinely cannot say construction vs.
@@ -504,7 +504,7 @@ as open in `docs/ENVIRONMENT_BASELINE_MODEL_CARD.md`.
                                                         │
   [ BUILT  ]  ==========================================v=================
               |  CORE CONTRACTS + TWO DOMAIN ENGINES + COMMON ANALYSIS      |
-              |  Built Environment (+ optional direction) · Environment     |
+              |  Construction & Urban Change (+ optional direction) · Environment     |
               ==========================================================
                                                         │
   [ BUILT  ]                              ChangeResult (mask, regions,

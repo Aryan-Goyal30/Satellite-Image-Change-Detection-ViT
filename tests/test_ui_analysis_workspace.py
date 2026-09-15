@@ -265,9 +265,15 @@ def test_analyze_is_rendered_before_advanced(six_band_sources, monkeypatch):
 
 
 def test_full_hierarchy_order(six_band_sources, monkeypatch):
+    """Title, then the requirement, then input, then Analyze, then Advanced.
+
+    The "what this monitor finds" sentence is intentionally not repeated on
+    this screen (UI polish pass) - the Home card the user clicked already
+    said it - so it is not one of the checkpoints here.
+    """
     rec, _ = render(environment_engine(), six_band_sources, monkeypatch)
     order = [_index(rec, f) for f in
-             ("### Environment Monitor", "Find forest lost", "REQUIRES:",
+             ("### Environment Monitor", "REQUIRES:",
               "Input", "Before acquisition", "Analyze change", "Advanced")]
     assert order == sorted(order), f"hierarchy out of order: {order}"
 

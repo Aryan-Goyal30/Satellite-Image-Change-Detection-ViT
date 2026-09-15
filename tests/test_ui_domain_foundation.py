@@ -156,7 +156,7 @@ def test_domain_cards_come_from_model_cards_without_building_a_model():
     assert card["task"] == "Binary forest-loss change detection"
 
     card = services.domain_card.__wrapped__("built_environment")
-    assert card["display_name"] == "Built Environment"
+    assert card["display_name"] == "Construction & Urban Change"
 
     # Unknown names degrade to a usable title rather than raising.
     assert services.domain_card.__wrapped__("nope")["display_name"] == "Nope"

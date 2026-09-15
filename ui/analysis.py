@@ -124,11 +124,13 @@ def render():
             st.rerun()
 
     st.markdown(f"### {md.display_name} Monitor")
-    theme.note(profile["purpose"])
 
     # ---- what this monitor needs, BEFORE any input is chosen ----------------
     # The sentence is this module's copy; the band list inside it comes from the
     # engine's own declared InputSpec, so the two cannot drift apart.
+    # `profile["purpose"]` (what this monitor finds) is deliberately not
+    # repeated here - the Home card the user just clicked already said it, and
+    # the requirements strip below is what they need to act on next.
     theme.requirements(
         domain_profiles.requirement_text(domain, md.input_spec),
         profile["requires_note"])

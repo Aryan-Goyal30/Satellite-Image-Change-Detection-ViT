@@ -48,7 +48,7 @@ _CSS = f"""
   }}
   .block-container h4 {{
       font-size: .95rem; font-weight: 600; color: {INK};
-      margin: 1.1rem 0 .5rem 0;
+      margin: 1.8rem 0 .6rem 0;
   }}
 
   .eg-hero h1 {{
@@ -123,18 +123,20 @@ _CSS = f"""
       font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
       color: {MUTED}; margin-bottom: .35rem;
   }}
-  .eg-note {{ color: {MUTED}; font-size: .85rem; line-height: 1.55; }}
+  .eg-note {{ color: {MUTED}; font-size: .85rem; line-height: 1.55; margin: .4rem 0; }}
 
   /* The one-sentence answer at the top of a result. Reads as a statement, not
      a heading: full ink, larger than body, no decoration. */
   .eg-verdict {{
       color: {INK}; font-size: 1.3rem; font-weight: 600;
-      letter-spacing: -0.01em; line-height: 1.4; margin: .35rem 0 .5rem 0;
+      letter-spacing: -0.01em; line-height: 1.4; margin: .35rem 0 1rem 0;
   }}
 
   /* The headline number. Deliberately larger than the secondary metrics so
-     the page has one obvious answer rather than four equal ones. */
-  .eg-hero-metric {{ margin: .1rem 0 1.1rem 0; }}
+     the page has one obvious answer rather than four equal ones. Extra bottom
+     margin gives it room to read as THE answer before the smaller numbers and
+     notes that follow. */
+  .eg-hero-metric {{ margin: .1rem 0 1.5rem 0; }}
   .eg-hero-value {{
       color: {INK}; font-size: 3rem; font-weight: 700;
       line-height: 1; letter-spacing: -0.02em;
@@ -168,7 +170,7 @@ _CSS = f"""
       color: {MUTED}; font-size: .85rem; line-height: 1.5; margin-top: .35rem;
   }}
 
-  hr {{ border-color: {LINE}; }}
+  hr {{ border-color: {LINE}; margin: 2rem 0; }}
 </style>
 """
 

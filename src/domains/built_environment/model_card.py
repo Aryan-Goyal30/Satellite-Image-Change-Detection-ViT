@@ -13,7 +13,7 @@ from src.core.types import InputSpec, OperatingEnvelope, Provenance
 from src.common.preprocessing import IMAGENET_MEAN, IMAGENET_STD
 
 DOMAIN = "built_environment"
-DISPLAY_NAME = "Built Environment"
+DISPLAY_NAME = "Construction & Urban Change"
 TASK = "Binary structural change detection"
 CAPABILITIES = ("structural_change",)
 DATASET = "LEVIR-CD"

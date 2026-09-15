@@ -20,13 +20,13 @@ PROFILES = {
     "built_environment": {
         # Home card, in the order a card reads: what it finds, what it
         # needs, what else it offers.
-        "card_finds": "Buildings that appeared or disappeared between two dates.",
+        "card_finds": "Construction and other built-up area changes between two dates.",
         "card_needs": ("Two ordinary RGB satellite images of the same place, "
                        "taken at different times."),
-        "card_extra": ("Also distinguishes Construction, Demolition and "
-                       "Uncertain for each detected region."),
-        "purpose": ("Find buildings that appeared or disappeared between two "
-                    "dates."),
+        "card_extra": ("Detected changes can also be classified as Construction, "
+                       "Demolition, or Uncertain."),
+        "purpose": ("Detect construction and other built-up area changes from "
+                    "before-and-after RGB satellite images."),
         "requires": "Two RGB images of the same place, taken at different times.",
         "requires_note": "",
         "details": ("Best results come from images that are reasonably aligned "

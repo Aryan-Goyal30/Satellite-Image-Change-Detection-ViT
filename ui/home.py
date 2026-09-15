@@ -94,9 +94,6 @@ def render():
     st.divider()
 
     theme.note(
-        "<strong>What this version does.</strong> You choose a monitor, supply "
-        "two images of the same area taken at different times, and the engine "
-        "returns a pixel-level map of where change occurred, how much changed, "
-        "and how confident it is. Each monitor states the imagery it requires. "
-        "Selecting a location and dates, and having imagery fetched for you, is "
-        "a later stage of the roadmap.")
+        "Choose a monitor, supply two images of the same area at different "
+        "times, and get a pixel-level map of what changed. Fetching imagery "
+        "for you from a location and date is planned, not yet available.")
