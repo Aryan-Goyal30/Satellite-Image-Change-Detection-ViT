@@ -9,4 +9,7 @@ __pycache__/
 /checkpoints/
 outputs/predictions/
 outputs/smoke_pred/
+outputs/environment_ablation/**/*.pt
+outputs/environment_baseline/*.pt
+outputs/environment_e3/*.pt
 /logs/

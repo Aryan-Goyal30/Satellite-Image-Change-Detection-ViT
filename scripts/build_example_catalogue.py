@@ -108,8 +108,18 @@ def main():
 
     examples = levir_test_examples(args.limit, args.min_change) + sample_examples()
 
+    # Entries from other domains are preserved: this script owns the
+    # built-environment entries only, and re-running it must not delete the
+    # environmental bundle that scripts/build_environment_examples.py wrote.
+    other, previous = [], {}
+    if os.path.exists(config.EXAMPLES_CATALOGUE):
+        with open(config.EXAMPLES_CATALOGUE, encoding="utf-8") as f:
+            previous = json.load(f)
+        other = [e for e in previous.get("examples", []) if e.get("domain") != DOMAIN]
+    examples = examples + other
+
     doc = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": previous.get("schema_version", SCHEMA_VERSION),
         "generated_by": "scripts/build_example_catalogue.py",
         "note": ("Bundled demo inputs. These images carry no location or "
                  "acquisition-date metadata, so none is recorded. Dataset-derived "
@@ -119,6 +129,8 @@ def main():
                            f"pixels as changed, limited to {args.limit}."),
         "examples": examples,
     }
+    if previous.get("domain_notes"):
+        doc["domain_notes"] = previous["domain_notes"]
 
     os.makedirs(config.EXAMPLES_DIR, exist_ok=True)
     with open(config.EXAMPLES_CATALOGUE, "w", encoding="utf-8", newline="\n") as f:

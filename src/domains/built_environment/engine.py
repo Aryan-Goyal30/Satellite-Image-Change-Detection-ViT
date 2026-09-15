@@ -37,6 +37,7 @@ from src import config
 from src.common.model_loader import checkpoint_sha256, load_model
 from src.common.preprocessing import IMAGENET_MEAN, IMAGENET_STD, to_batched_tensor
 from src.common.regions import extract_regions
+from src.common.tiling import sliding_window_probability
 from src.common.visualization import overlay  # noqa: F401  (re-export)
 from src.core.types import ChangeResult, GeoRef, Layer, Quantities
 from src.domains.built_environment import model_card
@@ -48,17 +49,24 @@ DEFAULT_CKPT = config.DEFAULT_CHECKPOINT_REL
 LEGACY_CAPABILITY = "structural / building change detection"
 
 
-def _hann2d(size):
-    """2D Hann window for seamless blending of overlapping tiles."""
-    w = np.hanning(size + 2)[1:-1]          # drop the zero endpoints
-    win = np.outer(w, w).astype(np.float32)
-    return np.maximum(win, 1e-3)            # never exactly zero
+def _direction_warning(exc):
+    """One short, user-facing warning. A traceback never reaches the caller."""
+    message = getattr(exc, "user_message", None)
+    if message:
+        return f"Direction analysis unavailable: {message}"
+    return ("Direction analysis unavailable: the direction classifier could not "
+            "be run on this image pair.")
 
 
 class ChangeEngine:
     """Built Environment engine. Satisfies src.core.engine.ChangeEngineProtocol."""
 
     domain = model_card.DOMAIN
+
+    #: This engine accepts analyze(..., with_direction=True). Declared so an
+    #: application can offer the option without inspecting the signature, and
+    #: so a domain that has no direction classifier is never called with it.
+    supports_direction = True
 
     def __init__(self, checkpoint=None, device=None, tile=256, overlap=64):
         # The engine resolves its own configured default, so applications can
@@ -89,10 +97,30 @@ class ChangeEngine:
             model_name=self.model_name, version=self.version,
             threshold=self.threshold, weights_hash=self.weights_hash)
 
+        # Direction classification is an OPTIONAL, additive capability. The
+        # classifier is created on first use and then retained for the lifetime
+        # of this engine instance, so the Streamlit @st.cache_resource engine and
+        # the CLI each load the model at most once. Nothing is loaded unless a
+        # caller explicitly asks for direction.
+        self._direction_clf = None
+
     @property
     def metadata(self):
         """Engine identity, capabilities, input spec and provenance."""
         return self._metadata
+
+    def _direction_classifier(self):
+        """The direction classifier, created lazily and cached on the engine.
+
+        Imported here rather than at module scope so importing the engine never
+        pulls in the direction package, never requires its checkpoint, and still
+        works where direction is simply absent.
+        """
+        if self._direction_clf is None:
+            from src.domains.built_environment.direction.classifier import (
+                DirectionClassifier)
+            self._direction_clf = DirectionClassifier(device=self.device)
+        return self._direction_clf
 
     # ---------------------------------------------------------------- utils
     @staticmethod
@@ -113,45 +141,29 @@ class ChangeEngine:
 
     # ------------------------------------------------------------ inference
     @torch.no_grad()
+    def _predict_tile(self, tiles):
+        """One window position: normalise, run the model, return probabilities."""
+        ta = self._norm(tiles[0]).to(self.device)
+        tb = self._norm(tiles[1]).to(self.device)
+        with torch.autocast("cuda", dtype=torch.float16,
+                            enabled=(self.device == "cuda")):
+            logits = self.model(ta, tb)
+        return torch.sigmoid(logits.float())[0, 0].cpu().numpy()
+
     def probability_map(self, a_np, b_np):
-        """Full-resolution change probability map, seamlessly tiled."""
-        H, W = a_np.shape[:2]
-        t, ov = self.tile, self.overlap
-        stride = t - ov
+        """Full-resolution change probability map, seamlessly tiled.
 
-        # pad so every position is covered by a full tile
-        ph = max(t, int(np.ceil(max(H - t, 0) / stride)) * stride + t)
-        pw = max(t, int(np.ceil(max(W - t, 0) / stride)) * stride + t)
-        # 'symmetric' rather than 'reflect': when the image is smaller than one
-        # tile the pad width exceeds the dimension, which older numpy rejects in
-        # reflect mode. The padded margin is cropped off again below, so the
-        # choice only has to be safe, not principled.
-        pad = ((0, ph - H), (0, pw - W), (0, 0))
-        a_p = np.pad(a_np, pad, mode="symmetric")
-        b_p = np.pad(b_np, pad, mode="symmetric")
-
-        acc = np.zeros((ph, pw), dtype=np.float32)
-        wsum = np.zeros((ph, pw), dtype=np.float32)
-        win = _hann2d(t)
-
-        rows = list(range(0, ph - t + 1, stride))
-        cols = list(range(0, pw - t + 1, stride))
-        for r in rows:
-            for c in cols:
-                ta = self._norm(a_p[r:r + t, c:c + t]).to(self.device)
-                tb = self._norm(b_p[r:r + t, c:c + t]).to(self.device)
-                with torch.autocast("cuda", dtype=torch.float16,
-                                    enabled=(self.device == "cuda")):
-                    logits = self.model(ta, tb)
-                prob = torch.sigmoid(logits.float())[0, 0].cpu().numpy()
-                acc[r:r + t, c:c + t] += prob * win
-                wsum[r:r + t, c:c + t] += win
-
-        return (acc / np.maximum(wsum, 1e-6))[:H, :W]
+        The windowing and Hann blending live in src/common/tiling.py, shared
+        with the environment engine; only normalisation and the forward pass
+        are this domain's.
+        """
+        return sliding_window_probability([a_np, b_np], self._predict_tile,
+                                          tile=self.tile, overlap=self.overlap)
 
     # -------------------------------------------------------------- public
     def analyze(self, before, after, threshold=None,
-                min_area_px=config.DEFAULT_MIN_AREA_PX, gsd_m=None, georef=None):
+                min_area_px=config.DEFAULT_MIN_AREA_PX, gsd_m=None, georef=None,
+                with_direction=False):
         """Analyze one image pair.
 
         Args:
@@ -161,6 +173,14 @@ class ChangeEngine:
             georef:       a GeoRef from src.common.georef, for GeoTIFF inputs.
                           Geographic output (m2, CRS centroids) appears only
                           when one of these carries a real metric scale.
+            with_direction: classify each detected region as construction or
+                          demolition. OFF by default: when False nothing about
+                          this call differs from before the capability existed,
+                          and the direction model is never loaded. When True the
+                          step is strictly additive - it only fills
+                          Region.direction and Region.direction_score, and a
+                          failure degrades to a warning rather than losing the
+                          detector's result.
 
         Returns a dict with:
             result         legacy JSON-serialisable dict (frozen output shape)
@@ -233,6 +253,34 @@ class ChangeEngine:
         if regions is None:
             result["warnings"] = warnings
 
+        # ---- optional, additive: direction classification ----
+        # Everything above is already final and untouched: probability map,
+        # threshold, mask, changed-pixel count, region extraction, region ids,
+        # region confidence, and the legacy dict. This step only fills two
+        # previously-None fields on each Region. With no regions the classifier
+        # is never even constructed.
+        direction_provenance = None
+        if with_direction and regions:
+            try:
+                classifier = self._direction_classifier()
+                predictions = classifier.classify_regions(a_np, b_np, regions)
+            except Exception as exc:                       # noqa: BLE001
+                # Direction is optional: its failure must never cost the caller
+                # the detector's result - but it must stay visible, never
+                # silently look like a success.
+                warnings.append(_direction_warning(exc))
+            else:
+                for region, (label, score) in zip(regions, predictions):
+                    region.direction = label
+                    region.direction_score = score
+                direction_provenance = classifier.provenance()
+
+        # Direction provenance travels in params rather than overloading
+        # Provenance, which describes exactly one model (the detector).
+        params = dict(result["params"])
+        if direction_provenance is not None:
+            params["direction"] = direction_provenance
+
         # ---- v1 contract view ----
         layer = Layer(name=model_card.LAYER_NAME, mask=mask, score_map=prob,
                       threshold=round(tau, 4), mean_confidence=round(conf, 4),
@@ -243,7 +291,7 @@ class ChangeEngine:
             quantities=Quantities.from_mask(mask, georef),
             provenance=self._metadata.provenance,
             input_info={"height": H, "width": W},
-            params=dict(result["params"]),
+            params=params,
             runtime_seconds=result["runtime_seconds"],
             georef=georef,
             warnings=warnings,

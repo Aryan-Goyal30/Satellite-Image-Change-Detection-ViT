@@ -2,6 +2,8 @@
 
     python predict.py --before images/before1.png --after images/after1.png
     python predict.py --before A.tif --after B.tif        # GeoTIFF: adds m2
+    python predict.py --engine environment \
+        --before s_before.npy --after s_after.npy        # six-band Sentinel-2
 
 The CLI is a thin wrapper: it asks the engine registry for a domain engine and
 works with the ChangeResult contract. The Streamlit app uses the same engine and
@@ -9,8 +11,15 @@ the same contract, so there is one code path and one result representation.
 
     engine.analyze(...) -> ChangeResult -> presentation / export
 
+Domains do not share an input contract, so the CLI does not assume one. Reading
+the pair is delegated to src/common/pair_input.py, which dispatches on the
+engine's own domain: RGB images for built_environment, six-band Sentinel-2
+surface reflectance for environment. The CLI itself contains no band handling
+and no normalisation.
+
 The legacy result dictionary is still available behind --legacy-json for
-consumers that have not migrated. It is deprecated.
+consumers that have not migrated. It is deprecated, and only the
+built-environment engine produces one.
 """
 import argparse, json, os, sys
 import numpy as np
@@ -18,7 +27,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src import config
-from src.common.image_input import open_image, to_rgb, validate_pair
+from src.common import pair_input
 from src.common.visualization import overlay
 from src.core import registry
 
@@ -49,23 +58,22 @@ def main():
     engine = (registry.get(args.engine, checkpoint=args.checkpoint)
               if args.checkpoint else registry.get(args.engine))
 
-    # Validate first; this also reads GeoTIFF metadata when present.
-    try:
-        before_img, after_img = open_image(args.before), open_image(args.after)
-    except ValueError as e:
-        raise SystemExit(f"error: {e}")
-
-    report = validate_pair(before_img, after_img, engine.metadata.input_spec)
-    for issue in report.warnings:
-        print(f"  warning: {issue.message}")
-    if not report.ok:
-        for issue in report.errors:
-            print(f"  error: {issue.message}")
+    # Read the pair the way THIS domain requires. For built_environment that is
+    # the unchanged open_image / validate_pair / to_rgb sequence, including
+    # GeoTIFF metadata; for environment it is the six-band contract, which
+    # refuses RGB rather than fabricating the missing bands.
+    pair = pair_input.prepare(engine.domain, args.before, args.after,
+                              engine.metadata.input_spec)
+    for message in pair.warnings:
+        print(f"  warning: {message}")
+    if not pair.ok:
+        for message in pair.errors:
+            print(f"  error: {message}")
         raise SystemExit(1)
 
-    out = engine.analyze(to_rgb(before_img), to_rgb(after_img),
+    out = engine.analyze(pair.before, pair.after,
                          threshold=args.threshold, min_area_px=args.min_area_px,
-                         gsd_m=args.gsd_m, georef=report.georef)
+                         gsd_m=args.gsd_m, georef=pair.georef)
 
     # ChangeResult is the primary representation.
     cr = out["change_result"]
@@ -76,13 +84,24 @@ def main():
     stem = os.path.splitext(os.path.basename(args.before))[0]
     Image.fromarray((mask * 255).astype(np.uint8)).save(os.path.join(args.out, f"{stem}_mask.png"))
     Image.fromarray((prob * 255).astype(np.uint8)).save(os.path.join(args.out, f"{stem}_prob.png"))
-    Image.fromarray(overlay(out["after"], mask)).save(os.path.join(args.out, f"{stem}_overlay.png"))
+    # The overlay is drawn on the domain's DISPLAY image. For an RGB domain that
+    # is the same array the model read; for the environment domain it is the
+    # true-colour composite the domain itself renders, because a six-band
+    # reflectance array is not displayable.
+    if pair.preview_after is not None:
+        Image.fromarray(overlay(pair.preview_after, mask)).save(
+            os.path.join(args.out, f"{stem}_overlay.png"))
     with open(os.path.join(args.out, f"{stem}_result.json"), "w") as f:
         json.dump(cr.to_dict(), f, indent=2)
 
     if args.legacy_json:   # deprecated compatibility path
-        with open(os.path.join(args.out, f"{stem}_result_legacy.json"), "w") as f:
-            json.dump(out["result"], f, indent=2)
+        if "result" in out:
+            with open(os.path.join(args.out, f"{stem}_result_legacy.json"), "w") as f:
+                json.dump(out["result"], f, indent=2)
+        else:
+            print(f"  warning: --legacy-json is not available for the "
+                  f"{engine.domain} engine; it is a deprecated built-environment "
+                  f"output shape. The ChangeResult JSON was written as usual.")
 
     if args.json:
         print(json.dumps(cr.to_dict(), indent=2)); return

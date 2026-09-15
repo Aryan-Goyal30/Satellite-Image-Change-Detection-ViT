@@ -1,0 +1,182 @@
+{
+  "experiment": "phase4b-4-e3-native-30m-supervision",
+  "dataset_version": "v24",
+  "hypothesis": "does supervising at TMF's native ~30 m support resolve the apparent region/topology failure?",
+  "only_change_from_e2": "spatial support at which the loss is evaluated",
+  "spatial_support": {
+    "block": 3,
+    "pad": 1,
+    "grid": [
+      86,
+      86
+    ],
+    "pooling": "mean over 3x3 blocks after symmetric edge padding of 1 (256 -> 258 = 3*86)",
+    "label_rule": "30 m cell positive when >= 0.5 of its 10 m pixels are positive",
+    "edge_handling": "edge replication, no pixel discarded",
+    "alignment_caveat": "3x3 blocks reproduce the SCALE of TMF support, not the identity of TMF pixels: measured 2.97 distinct TMF pixels per block (1.00 would be aligned), because the TMF EPSG:4326 grid and the UTM imagery grid share neither origin nor orientation",
+    "physical_cell_m": 30
+  },
+  "architecture": {
+    "name": "environment-siamese-unet-6band",
+    "encoder": "resnet34",
+    "in_channels": 6,
+    "bands": [
+      "B02",
+      "B03",
+      "B04",
+      "B08",
+      "B11",
+      "B12"
+    ],
+    "fusion": "conv1x1(concat[|f_before - f_after|, f_before + f_after])",
+    "weight_sharing": "single encoder applied to both dates",
+    "stem_initialisation": {
+      "B02": "B",
+      "B03": "G",
+      "B04": "R",
+      "B08": "achromatic mean of RGB",
+      "B11": "achromatic mean of RGB",
+      "B12": "achromatic mean of RGB"
+    },
+    "stem_scale": 0.5,
+    "stem_scale_rule": "3 / number_of_bands (magnitude normalisation)",
+    "pretrained_layers_reused": [
+      "bn1",
+      "layer1",
+      "layer2",
+      "layer3",
+      "layer4"
+    ],
+    "pretrained_layers_replaced": [
+      "conv1 (3ch -> 6ch, re-initialised)"
+    ],
+    "randomly_initialised": [
+      "fuse blocks",
+      "decoder",
+      "head"
+    ],
+    "imagenet_semantics_claimed_for_nir_swir": false,
+    "parameters": 25152209
+  },
+  "bands": [
+    "B02",
+    "B03",
+    "B04",
+    "B08",
+    "B11",
+    "B12"
+  ],
+  "normalisation": {
+    "path": "data\\environment\\characterization_v24_train_bands.json",
+    "sha256": "95e58cc37815f1759e2661ec3fd010bffd0954dd80d0951a32be3ac326d3c9c1",
+    "subset_sha256": "727ad32f98b05db5b654f8bb8b0f67031cd385bd320bb3e23dfd0a59523d8279",
+    "mean": [
+      0.04413012791877784,
+      0.06321721185877703,
+      0.0564930349856759,
+      0.27439223812305985,
+      0.20611148870348356,
+      0.11236270837461315
+    ],
+    "std": [
+      0.025441759989742286,
+      0.02748462185418511,
+      0.044444973492246354,
+      0.06249170404340661,
+      0.08492849143361803,
+      0.07320270276557037
+    ],
+    "bands": [
+      "B02",
+      "B03",
+      "B04",
+      "B08",
+      "B11",
+      "B12"
+    ],
+    "source": "v24 TRAIN split only (Phase 4B-1A characterization)"
+  },
+  "loss": {
+    "formulation": "0.5 * BCEWithLogits(pos_weight) + 0.5 * (1 - soft Dice), computed on 3x3 mean-pooled logits vs the majority-pooled label",
+    "w_bce": 0.5,
+    "w_dice": 0.5,
+    "pos_weight": 13.364,
+    "pos_weight_measured": {
+      "train_10m": 12.9577,
+      "train_30m": 13.1062,
+      "used": 13.364,
+      "note": "E2's value is reused so that spatial support is the only experimental variable; the measured values differ because majority pooling removes isolated speckle"
+    }
+  },
+  "optimiser": {
+    "name": "AdamW",
+    "lr": 0.0003,
+    "weight_decay": 0.0001,
+    "schedule": "CosineAnnealingLR(T_max=80)"
+  },
+  "batch_size": 8,
+  "seed": 20260913,
+  "precision": "bfloat16",
+  "augmentation": {
+    "transforms": "dihedral group: rot90 x {0,1,2,3} optionally followed by horizontal flip",
+    "applied_identically_to": [
+      "before",
+      "after",
+      "label",
+      "invalid"
+    ],
+    "date_swap": false,
+    "independent_per_date_geometry": false,
+    "colour_jitter": false,
+    "rationale": "only transforms that cannot manufacture spectral change; anything applied to one date alone would create apparent change that is an artefact of augmentation"
+  },
+  "splits": {
+    "train": {
+      "split": "train",
+      "n": 201,
+      "positive": 92,
+      "negative": 109,
+      "se_asia": 26,
+      "amazon": 175,
+      "augmented": true,
+      "bands": [
+        "B02",
+        "B03",
+        "B04",
+        "B08",
+        "B11",
+        "B12"
+      ]
+    },
+    "val": {
+      "split": "val",
+      "n": 44,
+      "positive": 21,
+      "negative": 23,
+      "se_asia": 10,
+      "amazon": 34,
+      "augmented": false,
+      "bands": [
+        "B02",
+        "B03",
+        "B04",
+        "B08",
+        "B11",
+        "B12"
+      ]
+    },
+    "test": "not read by this script"
+  },
+  "checkpoint_selection": "highest validation best-F1 at 30 m support",
+  "best_epoch": 31,
+  "best_val_f1_30m": 0.48826963667701656,
+  "epochs_run": 46,
+  "epochs_requested": 80,
+  "training_seconds": 228.2,
+  "hardware": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "checkpoint": "outputs\\environment_e3\\environment_e3_best.pt",
+  "checkpoint_sha256": "b3ac18dbf5d8d1a09116bc9b0932ef69516fbb1a130f40d8f3ae3135c5187554",
+  "dataset_manifest_sha256": "23721c09c864297a7857a3576e4398f700e642c3ab1e4531462eb603a2f827d8",
+  "dataset_arrays_sha256": "b53d4b3d89d111de653313bcaad9984c6bc5e240905771a5d09c5fa6cc32d248",
+  "generated_utc": "2026-09-14T07:55:49Z"
+}

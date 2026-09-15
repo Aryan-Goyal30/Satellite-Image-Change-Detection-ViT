@@ -1,0 +1,693 @@
+{
+  "experiment": "phase4b-4band",
+  "bands": [
+    "B02",
+    "B03",
+    "B04",
+    "B08"
+  ],
+  "dataset_version": "v24",
+  "checkpoint": "outputs\\environment_ablation\\E1_rgb_nir\\environment_best.pt",
+  "checkpoint_sha256": "2e4e04ed3f7e489b126d980201eebac05c0eb0d9df1b5f47b0107d9437ae6e5a",
+  "best_epoch": 10,
+  "threshold": 0.905,
+  "threshold_rule": "argmax F1 over a 201-point sweep of the VALIDATION probability histogram; frozen before the test split is read",
+  "normalisation_sha256": "95e58cc37815f1759e2661ec3fd010bffd0954dd80d0951a32be3ac326d3c9c1",
+  "validation": {
+    "pixel": {
+      "precision": 0.5430141957519407,
+      "recall": 0.3835353097495205,
+      "f1": 0.44954989734437656,
+      "iou": 0.28994799458573567,
+      "pixel_accuracy": 0.9654353748668321,
+      "tp": 40700,
+      "fp": 34252,
+      "fn": 65418,
+      "tn": 2743214,
+      "threshold": 0.905,
+      "average_precision": 0.38095460259705194
+    },
+    "region": {
+      "region_precision": 0.222222222218107,
+      "region_recall": 0.08108108108053325,
+      "region_f1": 0.11881188079521617,
+      "region_tp": 12,
+      "region_fp": 42,
+      "region_fn": 136,
+      "predicted_regions": 54,
+      "ground_truth_regions": 148,
+      "match_iou": 0.25,
+      "min_area_px": 32,
+      "criterion": "greedy matching by descending predicted area; a prediction is a true positive when IoU with an unclaimed ground-truth region is >= 0.25; each ground-truth region matches at most once"
+    },
+    "n": 44
+  },
+  "test": {
+    "pixel": {
+      "precision": 0.586309406777657,
+      "recall": 0.33974998746747087,
+      "f1": 0.4302069923971591,
+      "iou": 0.2740533248048926,
+      "pixel_accuracy": 0.9315157803622156,
+      "tp": 74551,
+      "fp": 52602,
+      "fn": 144878,
+      "tn": 2611553,
+      "threshold": 0.905,
+      "average_precision": 0.48649198864201615
+    },
+    "region": {
+      "region_precision": 0.22499999999718748,
+      "region_recall": 0.066176470587992,
+      "region_f1": 0.1022727269209065,
+      "region_tp": 18,
+      "region_fp": 62,
+      "region_fn": 254,
+      "predicted_regions": 80,
+      "ground_truth_regions": 272,
+      "match_iou": 0.25,
+      "min_area_px": 32,
+      "criterion": "greedy matching by descending predicted area; a prediction is a true positive when IoU with an unclaimed ground-truth region is >= 0.25; each ground-truth region matches at most once"
+    },
+    "n": 44
+  },
+  "test_by_region": {
+    "Amazon": {
+      "samples": 37,
+      "positive_samples": 18,
+      "negative_samples": 19,
+      "positive_pixels": 216018,
+      "pixel": {
+        "precision": 0.5892567686850969,
+        "recall": 0.339934635076705,
+        "f1": 0.43114644324717133,
+        "iou": 0.2748162452657884,
+        "pixel_accuracy": 0.920088484480574,
+        "tp": 73432,
+        "fp": 51186,
+        "fn": 142586,
+        "tn": 2157628,
+        "threshold": 0.905,
+        "average_precision": 0.5043136041009919
+      },
+      "region": {
+        "region_precision": 0.19117647058542386,
+        "region_recall": 0.04980842911858311,
+        "region_f1": 0.079027355294685,
+        "region_tp": 13,
+        "region_fp": 55,
+        "region_fn": 248,
+        "predicted_regions": 68,
+        "ground_truth_regions": 261,
+        "match_iou": 0.25,
+        "min_area_px": 32,
+        "criterion": "greedy matching by descending predicted area; a prediction is a true positive when IoU with an unclaimed ground-truth region is >= 0.25; each ground-truth region matches at most once"
+      }
+    },
+    "SE Asia": {
+      "samples": 7,
+      "positive_samples": 3,
+      "negative_samples": 4,
+      "positive_pixels": 3411,
+      "pixel": {
+        "precision": 0.44142011834302114,
+        "recall": 0.3280562884783559,
+        "f1": 0.37638748689720414,
+        "iou": 0.2318210068364964,
+        "pixel_accuracy": 0.9919172014508907,
+        "tp": 1119,
+        "fp": 1416,
+        "fn": 2292,
+        "tn": 453925,
+        "threshold": 0.905,
+        "average_precision": 0.3229614326664582
+      },
+      "region": {
+        "region_precision": 0.41666666663194446,
+        "region_recall": 0.45454545450413225,
+        "region_f1": 0.4347826081587902,
+        "region_tp": 5,
+        "region_fp": 7,
+        "region_fn": 6,
+        "predicted_regions": 12,
+        "ground_truth_regions": 11,
+        "match_iou": 0.25,
+        "min_area_px": 32,
+        "criterion": "greedy matching by descending predicted area; a prediction is a true positive when IoU with an unclaimed ground-truth region is >= 0.25; each ground-truth region matches at most once"
+      }
+    }
+  },
+  "reversed_dnbr_in_test": [
+    {
+      "sample_id": "env_N0_W60_2019_0017",
+      "split": "test",
+      "iou": 0.226,
+      "recall": 0.4854,
+      "sample_type": "positive"
+    },
+    {
+      "sample_id": "env_N0_W70_2021_0106",
+      "split": "test",
+      "iou": 0.5317,
+      "recall": 0.8248,
+      "sample_type": "positive"
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0165",
+      "split": "test",
+      "iou": 0.0105,
+      "recall": 0.0108,
+      "sample_type": "positive"
+    },
+    {
+      "sample_id": "env_S10_W60_2021_0181",
+      "split": "test",
+      "iou": 0.0,
+      "recall": 0.0,
+      "sample_type": "positive"
+    }
+  ],
+  "qualitative_cases": [
+    {
+      "sample_id": "env_S10_W60_2021_0180",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.885431477633162,
+      "recall": 0.95912564421539,
+      "pred_px": 17596,
+      "true_px": 16881,
+      "event_size": "large",
+      "caption": "true positive (best IoU)"
+    },
+    {
+      "sample_id": "env_N0_W60_2020_0037",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 0,
+      "true_px": 902,
+      "event_size": "medium",
+      "caption": "missed change (lowest recall)"
+    },
+    {
+      "sample_id": "env_S10_W60_2021_0186",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.05049109883364027,
+      "recall": 0.05080296479308215,
+      "pred_px": 369,
+      "true_px": 6476,
+      "event_size": "small",
+      "caption": "difficult small event"
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0166",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 0,
+      "true_px": 8397,
+      "event_size": "very_large",
+      "caption": "difficult large event"
+    },
+    {
+      "sample_id": "env_N0_E110_2020_0005",
+      "region": "SE Asia",
+      "sample_type": "negative",
+      "iou": 0.0,
+      "recall": null,
+      "pred_px": 134,
+      "true_px": 0,
+      "event_size": null,
+      "caption": "false positive (negative with most predicted pixels)"
+    },
+    {
+      "sample_id": "env_N0_E110_2019_a001",
+      "region": "SE Asia",
+      "sample_type": "positive",
+      "iou": 0.40970350404312667,
+      "recall": 0.5668620138518913,
+      "pred_px": 1784,
+      "true_px": 1877,
+      "event_size": "small",
+      "caption": "SE Asia example"
+    },
+    {
+      "sample_id": "env_S10_W70_2020_0234",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.035986334887585986,
+      "recall": 0.03618596662256574,
+      "pred_px": 1798,
+      "true_px": 43083,
+      "event_size": "very_large",
+      "caption": "Amazon example"
+    }
+  ],
+  "per_sample_test": [
+    {
+      "sample_id": "env_N0_E110_2019_a001",
+      "region": "SE Asia",
+      "sample_type": "positive",
+      "iou": 0.40970350404312667,
+      "recall": 0.5668620138518913,
+      "pred_px": 1784,
+      "true_px": 1877,
+      "event_size": "small"
+    },
+    {
+      "sample_id": "env_N0_E110_2020_0004",
+      "region": "SE Asia",
+      "sample_type": "positive",
+      "iou": 0.12415349887133183,
+      "recall": 0.13157894736842105,
+      "pred_px": 80,
+      "true_px": 418,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_N0_E110_2020_0005",
+      "region": "SE Asia",
+      "sample_type": "negative",
+      "iou": 0.0,
+      "recall": null,
+      "pred_px": 134,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_E110_2020_a007",
+      "region": "SE Asia",
+      "sample_type": "negative",
+      "iou": 0.0,
+      "recall": null,
+      "pred_px": 36,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_E110_2020_a009",
+      "region": "SE Asia",
+      "sample_type": "negative",
+      "iou": 0.0,
+      "recall": null,
+      "pred_px": 52,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_E110_2021_a015",
+      "region": "SE Asia",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W60_2019_0015",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.11713705958310275,
+      "recall": 0.6030389363722697,
+      "pred_px": 5003,
+      "true_px": 1053,
+      "event_size": "very_large"
+    },
+    {
+      "sample_id": "env_N0_W60_2019_0017",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.2259636817546884,
+      "recall": 0.48541147928238526,
+      "pred_px": 25587,
+      "true_px": 15663,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_N0_W60_2020_0031",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.29941343761109135,
+      "recall": 0.330423695566889,
+      "pred_px": 4425,
+      "true_px": 10196,
+      "event_size": "very_large"
+    },
+    {
+      "sample_id": "env_N0_W60_2020_0033",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.6677945247616118,
+      "recall": 0.7415250619076083,
+      "pred_px": 9977,
+      "true_px": 11711,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_N0_W60_2020_0034",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.41314020638076304,
+      "recall": 0.8122091941187418,
+      "pred_px": 9554,
+      "true_px": 5373,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_N0_W60_2020_0037",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 0,
+      "true_px": 902,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_N0_W60_2021_0055",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W60_2022_0063",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0010012682731459848,
+      "recall": 0.0010012682731459848,
+      "pred_px": 30,
+      "true_px": 29962,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_N0_W60_2022_0065",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W60_2022_0067",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W60_2022_0068",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W70_2019_0073",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.2598690364826941,
+      "recall": 0.414750671842341,
+      "pred_px": 3385,
+      "true_px": 3349,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_N0_W70_2019_r010",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W70_2020_0098",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W70_2020_0101",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W70_2020_0102",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N0_W70_2021_0106",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.5317115136452708,
+      "recall": 0.8247766616006228,
+      "pred_px": 37119,
+      "true_px": 26977,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_N0_W70_2022_0127",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_N10_E100_2020_a032",
+      "region": "SE Asia",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 449,
+      "true_px": 1116,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_S10_W60_2019_0142",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.1397626112759644,
+      "recall": 0.17522321428571427,
+      "pred_px": 1153,
+      "true_px": 2688,
+      "event_size": "small"
+    },
+    {
+      "sample_id": "env_S10_W60_2019_0148",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.2470234698923504,
+      "recall": 0.2661911788817839,
+      "pred_px": 8387,
+      "true_px": 24396,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_S10_W60_2019_0150",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W60_2019_0157",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0165",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.010529779532741033,
+      "recall": 0.010787122872071465,
+      "pred_px": 209,
+      "true_px": 5933,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0166",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 0,
+      "true_px": 8397,
+      "event_size": "very_large"
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0172",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0177",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W60_2021_0180",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.885431477633162,
+      "recall": 0.95912564421539,
+      "pred_px": 17596,
+      "true_px": 16881,
+      "event_size": "large"
+    },
+    {
+      "sample_id": "env_S10_W60_2021_0181",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 26,
+      "true_px": 2543,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_S10_W60_2021_0186",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.05049109883364027,
+      "recall": 0.05080296479308215,
+      "pred_px": 369,
+      "true_px": 6476,
+      "event_size": "small"
+    },
+    {
+      "sample_id": "env_S10_W60_2022_0210",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W60_2022_0212",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W70_2019_0225",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W70_2020_0234",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.035986334887585986,
+      "recall": 0.03618596662256574,
+      "pred_px": 1798,
+      "true_px": 43083,
+      "event_size": "very_large"
+    },
+    {
+      "sample_id": "env_S10_W70_2020_0244",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W70_2020_0246",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    },
+    {
+      "sample_id": "env_S10_W70_2021_0253",
+      "region": "Amazon",
+      "sample_type": "positive",
+      "iou": 0.0,
+      "recall": 0.0,
+      "pred_px": 0,
+      "true_px": 435,
+      "event_size": "medium"
+    },
+    {
+      "sample_id": "env_S10_W70_2021_0259",
+      "region": "Amazon",
+      "sample_type": "negative",
+      "iou": 1.0,
+      "recall": null,
+      "pred_px": 0,
+      "true_px": 0,
+      "event_size": null
+    }
+  ],
+  "figure": "outputs\\environment_ablation\\E1_rgb_nir\\test_qualitative.png",
+  "generated_utc": "2026-09-14T07:14:24Z"
+}

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "generated_by": "scripts/build_example_catalogue.py",
   "note": "Bundled demo inputs. These images carry no location or acquisition-date metadata, so none is recorded. Dataset-derived entries resolve only where the LEVIR-CD tiles have been prepared.",
   "selection_rule": "LEVIR-CD test tiles in sorted filename order whose ground truth marks at least 5% of pixels as changed, limited to 24.",
@@ -273,6 +273,78 @@
       "ground_truth": null,
       "description": "Bundled sample pair, 1024x1024. No ground-truth mask is available for this pair.",
       "source": "LEVIR-CD sample (split membership not recorded)"
+    },
+    {
+      "id": "env_amazon_large_clearing",
+      "name": "Amazon - large forest clearing",
+      "domain": "environment",
+      "before": "examples/environment/env_amazon_large_clearing_before.npy",
+      "after": "examples/environment/env_amazon_large_clearing_after.npy",
+      "ground_truth": "examples/environment/env_amazon_large_clearing_label.npy",
+      "description": "Amazon, MGRS tile 20MNT. Sentinel-2 L2A 2020-08-23 and 2022-08-23, six bands at 10 m. JRC TMF labels 41.16% of pixels as forest loss between these dates.",
+      "source": "JRC TMF + Sentinel-2 L2A, dataset v24 held-out test split",
+      "kind": "sentinel2_six_band",
+      "ground_truth_kind": "npy_mask",
+      "bands": [
+        "B02",
+        "B03",
+        "B04",
+        "B08",
+        "B11",
+        "B12"
+      ],
+      "gsd_m": 10.0,
+      "crs": "EPSG:32720",
+      "source_sample_id": "env_N0_W70_2021_0106"
+    },
+    {
+      "id": "env_seasia_small_clearing",
+      "name": "Southeast Asia - smaller forest clearing",
+      "domain": "environment",
+      "before": "examples/environment/env_seasia_small_clearing_before.npy",
+      "after": "examples/environment/env_seasia_small_clearing_after.npy",
+      "ground_truth": "examples/environment/env_seasia_small_clearing_label.npy",
+      "description": "Southeast Asia, MGRS tile 50LPR. Sentinel-2 L2A 2018-09-12 and 2020-09-11, six bands at 10 m. JRC TMF labels 2.86% of pixels as forest loss between these dates.",
+      "source": "JRC TMF + Sentinel-2 L2A, dataset v24 held-out test split",
+      "kind": "sentinel2_six_band",
+      "ground_truth_kind": "npy_mask",
+      "bands": [
+        "B02",
+        "B03",
+        "B04",
+        "B08",
+        "B11",
+        "B12"
+      ],
+      "gsd_m": 10.0,
+      "crs": "EPSG:32750",
+      "source_sample_id": "env_N0_E110_2019_a001"
+    },
+    {
+      "id": "env_amazon_intact_forest",
+      "name": "Amazon - intact forest (no change)",
+      "domain": "environment",
+      "before": "examples/environment/env_amazon_intact_forest_before.npy",
+      "after": "examples/environment/env_amazon_intact_forest_after.npy",
+      "ground_truth": "examples/environment/env_amazon_intact_forest_label.npy",
+      "description": "Amazon, MGRS tile 20KRG. Sentinel-2 L2A 2018-08-28 and 2020-08-27, six bands at 10 m. JRC TMF labels no forest loss between these dates - this is a no-change reference case.",
+      "source": "JRC TMF + Sentinel-2 L2A, dataset v24 held-out test split",
+      "kind": "sentinel2_six_band",
+      "ground_truth_kind": "npy_mask",
+      "bands": [
+        "B02",
+        "B03",
+        "B04",
+        "B08",
+        "B11",
+        "B12"
+      ],
+      "gsd_m": 10.0,
+      "crs": "EPSG:32720",
+      "source_sample_id": "env_S10_W60_2019_0157"
     }
-  ]
+  ],
+  "domain_notes": {
+    "environment": "Three samples copied from the frozen v24 held-out TEST split, chosen on ground-truth extent, spatial coherence and image quality only - never on how the model scores them. Stored as float32 surface reflectance in band order B02, B03, B04, B08, B11, B12."
+  }
 }

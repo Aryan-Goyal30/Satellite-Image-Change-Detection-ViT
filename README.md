@@ -1,33 +1,140 @@
-# Earth Guardian — Built-Environment Change Monitor
+# Earth Guardian
 
-Supervised satellite change detection: given two co-located high-resolution
-optical images of the same place at different dates, detect and localize
-**structural (building) change**, quantify it, and visualize it against ground
-truth.
+**Understand what changed on Earth.**
 
-> **Scope — read this first.**
-> The trained model detects **building construction and demolition** in
-> co-located optical imagery at roughly 0.3–1.0 m/px. It is trained and
-> evaluated on **LEVIR-CD** (Texas, USA, 2002–2018).
-> It does **not** detect floods, fires, deforestation, or snow/ice change, and
-> it has not been validated on imagery from other sensors, other regions, or
-> coarser resolutions. See [Limitations](#limitations).
+Given two satellite images of the same place, taken at different times,
+Earth Guardian tells you **what changed, where, and how much** — at the
+pixel level, backed by a supervised model trained and evaluated on public
+benchmarks, not a heuristic.
+
+> **Scope — read this first.** Earth Guardian has two working monitors today:
+> **Built Environment** (building construction/demolition in optical RGB
+> imagery) and **Environment** (forest loss in six-band Sentinel-2 imagery).
+> Neither is validated outside the geography and sensor it was trained on;
+> neither reports a calibrated probability; there is no real-time or
+> global-coverage capability, and no disaster-monitoring domain exists. See
+> [Limitations](#limitations).
 
 ---
 
-## Project stages
+## What Earth Guardian does
 
-| Stage | What it is | Status |
+```
+   BEFORE image  +  AFTER image  (same place, two dates)
+                    │
+                    ▼
+             domain engine (registry-selected)
+                    │
+                    ▼
+        ┌───────────────────────────────┐
+        │  What changed?                │   which layer: structural
+        │  Where, exactly? (pixel mask) │   change / forest loss
+        │  How much? (%, regions)       │
+        │  Which direction? (optional,  │   Built Environment only:
+        │   Built Environment only)     │   Construction / Demolition /
+        └───────────────────────────────┘   Uncertain
+```
+
+Every domain returns the same structured result — `ChangeResult` — so both the
+CLI and the Streamlit product read one contract regardless of which monitor
+produced it. See [The structured result](#the-structured-result).
+
+---
+
+## Current capabilities
+
+| | Built Environment | Environment |
 |---|---|---|
-| **Stage 0** — `baseline/` | Frozen ImageNet ViT-B/16 feature distance + RGB heuristics. The original POC. **No training.** Its ViT feature-distance map is scored against LEVIR-CD ground truth as a control (see [Results](#results)); the RGB heuristic classes are not scored and are not a capability. | preserved, not the product |
-| **Stage 1** — `src/` | Supervised Siamese U-Net trained on LEVIR-CD, evaluated against real ground-truth masks with Precision / Recall / F1 / IoU. | **current** |
-| Stage 2 | Cross-dataset generalization (WHU-CD, S2Looking), semantic change types | planned |
-| Stage 3 | Imagery provider (location + date search), georeferenced outputs | planned |
+| **Detects** | Building construction/demolition | Forest loss |
+| **Input** | 2× RGB image, same size | 2× Sentinel-2, **all six bands**: B02 B03 B04 B08 B11 B12 |
+| **Model** | Siamese U-Net, shared ResNet-34 encoder | Siamese U-Net, shared ResNet-34 encoder (6-channel stem) |
+| **Trained on** | LEVIR-CD (Texas, USA) | JRC Tropical Moist Forest + Sentinel-2, frozen dataset **v24** |
+| **Test F1** | **0.8943** | **0.5950** |
+| **Extra capability** | Optional direction classifier: Construction / Demolition / Uncertain | — |
+| **Ground area (m²)** | Only for georeferenced GeoTIFF input | Only for georeferenced input |
+| **Status** | Benchmark-grade | **V1 research model** — see [Environmental monitoring](#environmental-monitoring) |
 
-**Stage 0 is deliberately retained.** Its heuristic "Flood / Fire / Vegetation /
-Snow" classes are *not* a trained capability and are not part of the product
-path — they are RGB brightness thresholds. They remain in `baseline/` only so
-the supervised model can be compared against the starting point.
+A third domain, **Disaster** (flood/burn-scar/landslide), is named in the
+product as *coming later*. There is no model, no dataset, and no code for it —
+it is deliberately absent rather than stubbed.
+
+---
+
+## Where this came from
+
+The original prototype was a frozen, ImageNet-pretrained **ViT-B/16**: before/after
+patch embeddings were compared by distance, with no training at all. An audit
+found it had **zero task-specific learned parameters** — it had never been
+taught what a building looks like. Measured honestly on the same LEVIR-CD test
+tiles used today, it scores **F1 0.1192** raw, **F1 0.2135** after
+calibration on validation. The frozen POC's own decision rule (per-tile
+mean + 1.5·std, no tuning) scores **F1 0.0679**.
+
+The project was then redesigned around a **supervised Siamese U-Net** trained
+on real ground truth, which scores **F1 0.8943** on the identical tiles.
+
+**The lesson is not "CNNs beat ViTs."** A ViT could have been trained for this
+task too. The lesson is that a frozen, generic feature extractor with zero
+supervision cannot compete with a model that was actually taught the task —
+supervision is what mattered. The ViT baseline is preserved unchanged in
+[`baseline/`](baseline/) and is still scored, on the same protocol, as a
+historical control (see [Results](#results) below).
+
+---
+
+## Architecture overview
+
+```
+                        INPUT SOURCE   examples/catalogue.json (logical IDs)
+                                       or a direct upload
+                              │
+                              │  applications resolve inputs by domain,
+                              │  never by knowing a dataset's layout
+                              ▼
+                        APPLICATIONS
+             predict.py (CLI)        app.py (Streamlit: Home → Analysis → Results)
+                              │
+                              │  ask the registry for a domain by name
+                              ▼
+        ┌─────────────────────────────────────────────┐
+        │  CORE CONTRACTS                 src/core/    │
+        │    registry    name -> engine (lazy)         │
+        │    engine      ChangeEngineProtocol           │
+        │    types       ChangeResult (schema 1.2)      │
+        └─────────────────────────────────────────────┘
+                              │
+                              ▼
+        ┌─────────────────────────────────────────────┐
+        │  DOMAIN ENGINES              src/domains/     │
+        │    built_environment   RGB, LEVIR-CD           │
+        │      + direction/      optional, opt-in        │
+        │    environment         6-band Sentinel-2        │
+        └─────────────────────────────────────────────┘
+                              │
+                              ▼
+        ┌─────────────────────────────────────────────┐
+        │  COMMON                        src/common/    │
+        │    pair_input   PreparedPair: model input vs   │
+        │                 RGB display preview, separated │
+        │    tiling       shared sliding-window inference│
+        │    model_loader shared checkpoint loading       │
+        │    regions, georef, visualization                │
+        └─────────────────────────────────────────────┘
+```
+
+**`PreparedPair`** is the mechanism that lets one UI serve two structurally
+different sensors: `before`/`after` are whatever the domain's model actually
+consumes (3-channel RGB, or 6-band reflectance), while `preview_before`/
+`preview_after` are always uint8 RGB, for display only. The UI never reads the
+model-input arrays, and a six-band array is never rendered.
+
+The UI itself is **capability-driven**, not domain-name-driven: it asks
+`engine.supports_direction`, `provenance.score_calibrated`,
+`georef.has_scale`, never `if domain == "built_environment"`. That is what let
+the Environment domain — a completely different sensor — be added without
+rewriting Home, Analysis or Results.
+
+Full detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -41,7 +148,7 @@ selected on the validation split and applied to test unchanged.
 | Metric (change class) | Test | Validation |
 |---|---|---|
 | **Precision** | **0.9060** | 0.8945 |
-| **Recall**    | **0.8829** | 0.9096 |
+| **Recall**    | **0.8830** | 0.9096 |
 | **F1**        | **0.8943** | 0.9020 |
 | **IoU**       | **0.8088** | 0.8215 |
 | Average precision | 0.9400 | 0.9525 |
@@ -75,21 +182,132 @@ test inference 17.5s for 2,048 tiles.
 > concept: a frozen ImageNet ViT-B/16 whose patch embeddings are compared
 > between the two dates, with the 14x14 distance map upsampled to 256x256.
 > It is kept as a control. Every row uses the same 2,048 test tiles.
-> Thresholds, and Stage 0's calibration constants, were fixed on validation
-> and applied to test unchanged. The POC's own decision rule (per-tile
-> mean + 1.5 std, no tuning) scores F1 0.0679 on the same tiles.
 
 ![Stage 0 vs Stage 1](outputs/figures/fig5_stage0_vs_stage1.png)
-![Stage 0 vs Stage 1 examples](outputs/figures/fig6_stage0_vs_stage1_examples.png)
-
 ![Metrics](outputs/figures/fig3_metrics.png)
 ![Qualitative](outputs/figures/fig2_qualitative_success.png)
-![Failures](outputs/figures/fig4_failures.png)
 <!-- RESULTS:END -->
 
 ---
 
-## Quick start
+## Direction classifier
+
+**Optional, opt-in capability of the Built Environment monitor.** The primary
+detector answers *did this area change*, symmetrically — it cannot say
+whether a change was construction or demolition (its training task is
+direction-blind by design; see [Method](#method)). A **separate, frozen
+ResNet-18** answers that second question for regions the detector has already
+found.
+
+| | |
+|---|---|
+| Input | 6-channel: Before RGB + After RGB, 128×128 region crop, 25% context |
+| Trained on | S2Looking (official split), region-level construction/demolition targets derived by this project's own pipeline |
+| Classes | Construction, Demolition, **Uncertain** (abstention, not a trained class) |
+
+| Metric (test) | Value |
+|---|---|
+| Macro-F1 (headline) | **0.9608** |
+| Balanced accuracy | 0.9601 |
+| Accuracy | 0.9631 |
+| ECE (calibration error) | 0.0172 |
+| Abstention threshold | 0.960 |
+| Test coverage (not abstained) | 0.8948 |
+| Retained accuracy | 0.9868 |
+| Retained macro-F1 | 0.9858 |
+
+**Read this metric correctly.** It is measured on **S2Looking's own
+ground-truth regions**, not on regions produced by the LEVIR-CD detector —
+deliberately, because an end-to-end number would confound detector domain
+shift with classifier quality and is not what this metric claims to measure.
+There is no published end-to-end (detector + direction, one pipeline, one
+benchmark) evaluation number.
+
+**"Uncertain" is the model declining to answer**, not a ground-truth class —
+when its confidence doesn't clear the abstention threshold, it says so instead
+of guessing. **`direction_score` is not a calibrated probability**; the
+classifier is measurably over-confident (ECE 0.0172).
+
+One more honesty note: which S2Looking image is *earlier* is not documented by
+the dataset's authors. The mapping used here (`BEFORE = Image2, AFTER =
+Image1`) is a **ratified project decision**, carried as
+`documented_by_authors: false` in every training artifact. If that assumption
+is ever overturned, every construction/demolition label in this classifier
+inverts. Full detail: [docs/DIRECTION_CLASSIFIER_MODEL_CARD.md](docs/DIRECTION_CLASSIFIER_MODEL_CARD.md).
+
+---
+
+## Environmental monitoring
+
+Six-band Sentinel-2 L2A surface reflectance — **B02, B03, B04, B08, B11,
+B12** — for forest-loss detection against JRC Tropical Moist Forest (TMF)
+labels. **The RGB preview shown in the UI is for human display only; the
+model always receives all six bands**, and an RGB-only upload is refused
+rather than padded or substituted.
+
+**Frozen dataset v24**: 295 samples (140 positive / 155 negative), split
+207 train / 44 validation / 44 test, geographically disjoint by MGRS tile with
+a measured minimum separation of **100.58 km** between splits. 249 samples
+from the Amazon, 46 from Southeast Asia.
+
+| Metric (test, pixel-level) | Value |
+|---|---|
+| Precision | 0.5505 |
+| Recall | 0.6472 |
+| **F1** | **0.5950** |
+| IoU | 0.4235 |
+| AP | 0.5670 |
+
+Threshold **0.91**, selected on validation only, applied to test unchanged.
+
+**This is meaningfully lower than Built Environment, on purpose reported
+honestly, not hidden:**
+
+- **Region-level agreement is poor** (region F1 0.1136) even though pixel
+  agreement is moderate — the model recovers roughly the right total extent
+  but disagrees about how it's divided into distinct clearings. A detected
+  region should not be read as one reliably identified clearing.
+- **Output is a 10 m grid; the reference labels are 30 m-quantized** — TMF
+  labels are resampled from 30 m to the 10 m grid the model operates on, so
+  boundaries are accurate to about one TMF pixel, not to 10 m.
+- **Scores are not calibrated probabilities.** No calibration has been fitted
+  or measured for this model.
+- **Geography is limited to the Amazon and Southeast Asia.** Africa is absent
+  from the training data entirely (the JRC data endpoint fails for every Congo
+  Basin longitude tried) — this says nothing about African forest loss.
+- This is a **V1 research model**: one training run, one dataset version, no
+  hyperparameter search, less mature than the Built Environment benchmark.
+
+Three curated examples from the frozen v24 **test** split ship with the
+product (never chosen by how well the model scores on them — see
+[`examples/catalogue.json`](examples/catalogue.json)).
+
+Full detail: [docs/ENVIRONMENT_BASELINE_MODEL_CARD.md](docs/ENVIRONMENT_BASELINE_MODEL_CARD.md).
+
+### Spectral ablation
+
+The six-band requirement is evidenced, not assumed. Same protocol, same test
+samples, only the input bands differ:
+
+| Input | Test F1 |
+|---|---|
+| RGB only | 0.4164 |
+| RGB + NIR (B08) | 0.4302 |
+| **All six bands (+ SWIR B11/B12)** | **0.5950** |
+
+The two SWIR bands alone are worth roughly **+0.18 F1** — the evidence behind
+the product refusing plain RGB uploads for this domain.
+
+A further experiment (**E3**) tested whether supervising the loss at TMF's
+native ~30 m spatial support, instead of the model's native 10 m grid, would
+close the region-level gap above. It did not: E3@10 F1 0.5324, E3@30 F1
+0.5375, against the frozen model's own E2@30 F1 0.5981 — the hypothesis was
+refuted, so label granularity alone does not explain the region-level
+disagreement.
+
+---
+
+## Demo / running the application
 
 ### 1. Environment
 
@@ -102,65 +320,37 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
 
-### 2. Data
+### 2. Data and checkpoints
+
+**Neither the datasets nor the trained checkpoints are in this repository** —
+see [Reproducibility](#reproducibility-and-large-local-assets). To run the
+Built Environment monitor from scratch:
 
 ```bash
 python scripts/download_levir.py            # ~2.5 GB, resumable, official split
 python scripts/prepare_tiles.py             # 1024^2 scenes -> 256^2 tiles
 python scripts/build_example_catalogue.py   # bundled demo examples
-```
-
-The catalogue lets the applications select inputs by logical ID, so they never
-need to know how the dataset is laid out. Without the dataset it still resolves
-the three sample pairs tracked in `images/`.
-
-See [docs/DATASET.md](docs/DATASET.md) for the directory layout and the
-no-leakage argument.
-
-### 3. Train
-
-```bash
 python -m src.train.train --epochs 50 --batch-size 32
 ```
 
-Checkpoints the best model **by validation F1** to
-`checkpoints/siamese_unet_r34_best.pt`. Loss is a poor selection signal here
-because it is dominated by the ~95% background class.
+The Environment monitor's demo examples are already bundled under
+`examples/environment/` (tracked, 9.3 MB); running it on new data needs the
+frozen v24 archive and `outputs/environment_baseline/environment_sixband_best.pt`
+(see below).
 
-### 4. Evaluate
-
-```bash
-python -m src.eval.evaluate
-```
-
-Selects the operating threshold on **validation**, then applies it unchanged to
-**test**. Writes `outputs/results/evaluation.json`.
-
-### 5. Figures
+### 3. Run the product
 
 ```bash
-python -m src.viz.figures
+streamlit run app.py
 ```
 
-Writes to `outputs/figures/`:
+Three screens: **Home** (choose a monitor), **Analysis** (pick a bundled
+example or upload your own pair — each monitor states exactly what it needs
+before you choose), **Results** (verdict, visualization, metrics, regions,
+and direction when applicable). Inference runs once, when **Analyze change**
+is pressed; every other interaction reads the stored `ChangeResult`.
 
-| File | Contents |
-|---|---|
-| `fig1_before_after.png` | Before \| After |
-| `fig2_qualitative_success.png` | Before \| After \| Ground Truth \| Prediction \| Error map |
-| `fig3_metrics.png` | Precision / Recall / F1 / IoU + PR curve |
-| `fig4_failures.png` | Representative **failure** cases |
-| `fig5_stage0_vs_stage1.png` | Stage 0 baseline vs Stage 1: test metrics and PR curves |
-| `fig6_stage0_vs_stage1_examples.png` | The same test tiles through Stage 0 and Stage 1 |
-
-Stage 0 baseline scoring (frozen ViT, same test tiles, same protocol):
-
-```bash
-python -m src.eval.evaluate_baseline   # writes outputs/results/baseline_evaluation.json
-python -m src.viz.compare_figures      # writes fig5 and fig6
-```
-
-### 6. Inference
+### 4. CLI inference
 
 ```bash
 python predict.py --before images/before1.png --after images/after1.png
@@ -168,75 +358,31 @@ python predict.py --before images/before1.png --after images/after1.png
 
 Writes a mask, probability map, overlay and a structured `result.json`.
 
-### 7. Product V1 application
-
-```bash
-streamlit run app.py
-```
-
-**Product V1 is paired-image structural change analysis.** Three screens:
-
-| Screen | What it does |
-|---|---|
-| **Home** | Earth Guardian landing; the Built Environment Monitor is the one module that works. Environmental and Disaster monitors are shown as coming later, with no functionality. |
-| **Workspace** | Pick a bundled example by name, or drag and drop your own BEFORE / AFTER pair. Inputs are validated before anything runs. One **Analyze change** action. |
-| **Results** | Before/after, then the detected change (overlay, mask, probability map, and an error map when ground truth exists), then the summary, region details, and the model card. |
-
-Inference runs only when **Analyze change** is pressed; switching views,
-highlighting a region or opening a section reads the stored `ChangeResult`.
-
-Uploads must be an optical RGB pair of the **same dimensions** covering the same
-area. Multispectral and SAR products (more than four bands) are rejected rather
-than having bands picked arbitrarily.
-
-### Regions and ground area
-
-A **region** is a connected component of the change mask — a contiguous patch of
-detected change. It is *not* an identified building, and it carries no direction
-(construction vs demolition). Components smaller than
-`config.DEFAULT_MIN_AREA_PX` (32 px) are discarded as noise.
-
-**Region confidence** is the mean predicted change probability over that
-region's pixels, on the same 0–1 scale as the threshold. It summarises model
-score; it is not a calibrated per-region probability and has not been validated
-per region.
-
-**Ground area in m² is only available for georeferenced GeoTIFFs.** PNG and JPEG
-carry no georeferencing, so there is no scale to convert pixels with and any
-figure would be invented. For GeoTIFF, metres require a **projected** CRS whose
-linear unit is metre, with square pixels; a geographic CRS (degrees, e.g.
-EPSG:4326) never yields m², because converting degrees to metres depends on
-latitude. Both images must share dimensions, CRS and geotransform — Earth
-Guardian performs **no reprojection, resampling or registration**, and refuses
-mismatched pairs instead of pretending they align. GeoTIFF metadata is read
-through Pillow's TIFF tags, with no rasterio or GDAL dependency.
-
-*Future (not implemented): choosing a location and dates and having imagery
-acquired for you; Environmental and Disaster monitors.*
-
 ---
 
 ## The structured result
 
 The JSON is the product's actual interface; every visual is a renderer over it.
 
-`ChangeResult`, schema v1:
+`ChangeResult`, schema v1.2:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.2",
   "layers":   [{"name": "structural_change", "threshold": 0.625,
                 "changed_pixels": 0, "mean_confidence": 0.0,
                 "has_score_map": true, "description": "..."}],
   "regions":  [{"id": 1, "area_px": 0, "bbox_xywh": [0,0,0,0],
-                "centroid_xy": [0,0], "layer": "structural_change"}],
+                "centroid_xy": [0,0], "layer": "structural_change",
+                "direction": null, "direction_score": null}],
   "quantities": {"changed_pixels": 0, "total_pixels": 1048576,
                  "changed_percentage": 0.0, "area_m2": null},
   "provenance": {"model": "siamese-unet-resnet34", "version": "1.0.0",
                  "task": "Binary structural change detection",
                  "dataset": "LEVIR-CD", "threshold": 0.625,
                  "weights_hash": "...", "evaluation_protocol": "...",
-                 "operating_envelope": {"gsd_m_range": [0.3, 1.0], "...": "..."}},
+                 "operating_envelope": {"gsd_m_range": [0.3, 1.0], "...": "..."},
+                 "dataset_version": null, "score_calibrated": null},
   "input":  {"height": 1024, "width": 1024},
   "georef": null,
   "params": {"threshold": 0.625, "min_area_px": 32, "tile": 256, "overlap": 64},
@@ -245,15 +391,19 @@ The JSON is the product's actual interface; every visual is a renderer over it.
 }
 ```
 
-`layers` is a list so a future multi-class engine fits without a schema break;
-this engine emits exactly one layer.
+`layers` is a list so a multi-class engine fits without a schema break; each
+current engine emits exactly one. `regions[].direction` /
+`direction_score` (schema 1.2) are populated only when direction
+classification was explicitly requested — they belong to the direction
+classifier, a different model from the detector, and stay `null` otherwise.
+`provenance.dataset_version` / `score_calibrated` (also 1.2, both additive and
+optional — schema was **not** bumped to introduce them, since they change no
+existing engine's output) let a consumer tell which dataset snapshot produced
+a result and whether its scores may be read as probabilities — for the
+Environment engine, `score_calibrated` is explicitly `false`.
 
-`area_m2` is `null` unless a real `--gsd-m` is supplied — it is produced only
-from a `GeoRef` with a true ground sample distance, and LEVIR-CD PNGs carry no
-georeferencing, so reporting ground area would be fabricated.
-
-The pre-v1 result dictionary is deprecated but still available via
-`predict.py --legacy-json`.
+`area_m2` is `null` unless a real ground sample distance is supplied through a
+valid `GeoRef` — never fabricated from an assumption about resolution.
 
 ---
 
@@ -263,88 +413,202 @@ The pre-v1 result dictionary is deprecated but still available via
 both dates with **shared weights**. At each of five scales the two feature maps
 are fused as `conv1x1(concat[|f_a − f_b|, f_a + f_b])` — the difference carries
 the change signal, the sum carries scene context. A U-Net decoder returns one
-logit per pixel at full input resolution. 25.1 M parameters.
+logit per pixel at full input resolution. 25.1 M parameters (Built
+Environment, 3-channel; the Environment engine uses the same design with a
+6-channel input stem, 25.15 M parameters).
 
-**Loss.** `0.5 · BCE(pos_weight) + 0.5 · (1 − Dice)`. LEVIR-CD is ~95%
-unchanged pixels; plain BCE collapses to predicting "no change".
+**Loss.** `0.5 · BCE(pos_weight) + 0.5 · (1 − Dice)`. Both domains are heavily
+class-imbalanced (LEVIR-CD ~95% unchanged pixels; the environment training set
+uses `pos_weight` 13.364); plain BCE alone collapses to predicting "no change".
 
-**Inference.** Images larger than 256×256 are processed with overlapping tiles
-blended by a 2-D Hann window, so full scenes come back without tile seams.
+**Task symmetry (Built Environment).** The label marks that pixels differ, not
+in which direction, so the task is symmetric under swapping the two dates —
+which is why date-swap is a valid training augmentation, and why the primary
+detector genuinely cannot distinguish construction from demolition on its own.
+The direction classifier is a separate model for exactly that reason.
+
+**Inference.** Images larger than the model's training tile are processed
+with overlapping 256×256 tiles blended by a 2-D Hann window (shared by both
+domains via `src/common/tiling.py`), so full scenes come back without tile
+seams.
 
 **Evaluation.** TP/FP/FN/TN are accumulated **globally** over a split, not
-averaged per image — the LEVIR-CD convention. Per-image averaging inflates
-scores because empty tiles produce degenerate per-image F1.
+averaged per image — the LEVIR-CD convention, applied consistently to the
+Environment domain too. Per-image averaging inflates scores because empty
+tiles produce degenerate per-image F1.
 
 Full rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## Limitations
-
-- **Buildings only.** Trained on LEVIR-CD, which annotates building change.
-  Vegetation, water, fire and snow change are not represented in the labels and
-  are not detected.
-- **One geography.** All training data is from 20 regions in Texas, USA.
-  Generalization to other regions and sensors is **untested** as of Stage 1.
-- **Co-registration is assumed.** LEVIR-CD is pre-registered. There is no
-  registration step in the current pipeline, so misaligned inputs will produce
-  false positives.
-- **No georeferencing.** Outputs are in pixel coordinates. No CRS, no m².
-- **Single architecture, single seed.** No architecture comparison and no
-  seed-variance study has been run yet; differences smaller than seed noise
-  cannot be claimed.
-- **Small and edge-cut structures.** The weakest test tiles are small,
-  isolated rural buildings that are missed entirely, and buildings cut off
-  by the 256x256 tile boundary (see `outputs/figures/fig4_failures.png`).
-- **Checkpoint vs threshold selection.** The checkpoint is chosen by
-  validation F1 at threshold 0.5, while evaluation selects the threshold on
-  validation. Both use validation data only, so the test set is untouched,
-  but they are different criteria. The largest disagreement observed during
-  training was about 0.001 F1.
-
----
-
-## Repository layout
+## Repository structure
 
 ```
 src/config.py                       all project paths in one place
 src/core/                           domain-independent contracts
     types.py                          ChangeResult, Layer, Region, Quantities,
-                                      Provenance, GeoRef, InputSpec
+                                      Provenance, GeoRef, InputSpec (schema 1.2)
     engine.py                         ChangeEngineProtocol, EngineMetadata
-    registry.py                       engine name -> implementation
-src/common/                         shared services
+    registry.py                       engine name -> implementation (lazy)
+src/common/                         shared services, no domain knowledge
+    pair_input.py                     domain-aware input dispatch, PreparedPair
+    tiling.py                         shared sliding-window inference
     preprocessing.py                  normalisation contract
     model_loader.py                   checkpoint -> model
     examples.py                       example catalogue loader (input source)
+    regions.py, georef.py, visualization.py
 examples/catalogue.json             bundled examples: logical ID -> file paths
+examples/environment/               curated six-band demo examples (tracked)
 src/domains/
-    built_environment/              the one implemented domain
-        data/levir.py                 LEVIR-CD dataset and augmentation
-        engine.py                     inference engine (product core)
-        model_card.py                 claims and operating envelope
-    (environmental, disaster)        FUTURE - not implemented
-src/models/siamese_unet.py          architecture (shared)
-src/train/                          loss + training loop
-src/eval/                           metrics + evaluation protocol
-src/viz/                            presentation figures
-src/data/, src/inference/           compatibility shims -> domain package
-baseline/                           Stage 0 POC (frozen ViT) - preserved
-scripts/                            dataset download + tiling
+    built_environment/               RGB structural change (LEVIR-CD)
+        data/levir.py                  dataset + augmentation
+        data/s2looking.py              region-target derivation (research only)
+        direction/                     optional direction classifier (ResNet-18)
+        engine.py, model_card.py
+    environment/                     six-band forest-loss (JRC TMF + Sentinel-2)
+        data/                           Sentinel-2, TMF, STAC acquisition
+        engine.py, model_card.py, inputs.py, normalization.py, region_metrics.py
+    (disaster)                       NOT IMPLEMENTED — no model, no code
+src/models/siamese_unet.py          architecture (shared across domains)
+src/train/, src/eval/, src/viz/     training loop, metrics, figures
+baseline/                           Stage 0 POC (frozen ViT) — preserved
+ui/                                 Streamlit product: Home / Analysis / Results
+    domains.py                        per-domain presentation copy (no model logic)
+    panels/direction.py               all direction-specific UI, one place
+scripts/                            dataset builders, trainers, evaluators, figures
+                                    (28 scripts — see docs/ for what each backs)
 predict.py                          CLI
-app.py                              Streamlit demo
-docs/                               architecture + dataset notes
+app.py                              Streamlit entry point (router only)
+docs/                               architecture, dataset, and model-card documentation
+tests/                              504 tests across ML pipeline and UI architecture
 ```
 
 Applications ask the registry for a domain rather than importing a model:
 
 ```python
 from src.core import registry
-engine = registry.get("built_environment")
+engine = registry.get("built_environment")   # or "environment"
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the layering and the
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full layering and the
 result contract.
+
+---
+
+## Training / evaluation overview
+
+| Domain | Train | Evaluate |
+|---|---|---|
+| Built Environment | `python -m src.train.train --epochs 50 --batch-size 32` | `python -m src.eval.evaluate` |
+| Direction classifier | `python scripts/train_direction_classifier.py` | `python scripts/evaluate_direction_classifier.py` |
+| Environment (E2, production) | `python scripts/train_environment_baseline.py` | `python scripts/evaluate_environment_baseline.py` |
+| Stage 0 control | — (frozen, untrained) | `python -m src.eval.evaluate_baseline` |
+
+Figures: `python -m src.viz.figures` (Built Environment) and
+`python -m src.viz.compare_figures` (Stage 0 vs Stage 1) write to
+`outputs/figures/`. Environment-specific figures/reports:
+`scripts/environment_baseline_model_card.py`,
+`scripts/compare_environment_ablation.py`,
+`scripts/analyze_environment_failures.py`.
+
+Each training script selects its checkpoint and threshold **on validation
+only**, then scores **test exactly once**, unchanged — the discipline
+documented per-model in `docs/*_MODEL_CARD.md`.
+
+---
+
+## Reproducibility and large local assets
+
+**This repository does not contain the datasets or the trained model
+weights.** Both are large, both are reproducible from the scripts above, and
+neither is committed:
+
+| Asset | Size | Location (local, gitignored) | Reproduce with |
+|---|---|---|---|
+| LEVIR-CD + tiles | ~2.5 GB+ | `data/levir_cd/`, `data/levir_cd_tiles/` | `scripts/download_levir.py`, `scripts/prepare_tiles.py` |
+| S2Looking | large | `data/s2looking/` | `scripts/download_s2looking.py` |
+| Environment dataset v24 | ~503 MB | `data/environment/dataset_v24/` | `scripts/build_environment_dataset_v24.py` (built on the v2.1–v2.3 lineage — see [docs/DATASET.md](docs/DATASET.md)) |
+| Built Environment checkpoint | ~97 MB | `checkpoints/siamese_unet_r34_best.pt` | `python -m src.train.train` |
+| Direction classifier checkpoint | ~43 MB | `checkpoints/direction_resnet18_both_best.pt` | `scripts/train_direction_classifier.py` |
+| **Environment production checkpoint** | **~97 MB** | `outputs/environment_baseline/environment_sixband_best.pt` | `scripts/train_environment_baseline.py` |
+
+The environment checkpoint lives under `outputs/` rather than `checkpoints/`
+deliberately: the experiment manifest, training history and evaluation JSON
+sitting beside it are what make the weights interpretable, and moving it would
+break that link (see `src/config.py`). It is gitignored specifically (not the
+whole directory) so the small JSON/CSV/PNG artifacts around it stay tracked.
+
+**A fresh clone of this repository cannot run inference until the relevant
+checkpoint is either reproduced by training or obtained separately.** The
+bundled demo examples (`examples/`) are the exception — they are small,
+tracked, and work without the 34 GB `data/` directory.
+
+---
+
+## Limitations
+
+**Built Environment**
+- Buildings only. Trained on LEVIR-CD; vegetation, water, fire and snow change
+  are not represented in the labels and are not detected.
+- One geography — all training data is from 20 regions in Texas, USA.
+  Generalization elsewhere is untested.
+- Co-registration is assumed; there is no registration step, so misaligned
+  inputs produce false positives.
+- No georeferencing unless a valid GeoTIFF with a projected metric CRS is
+  supplied — otherwise there is no ground area, only pixels and percentage.
+- Single architecture, single seed — no comparison study has been run.
+- The primary detector cannot distinguish construction from demolition by
+  itself (task is symmetric by design); only the separate, optional direction
+  classifier can, and only per already-detected region.
+
+**Direction classifier**
+- The temporal ordering it relies on (`BEFORE = Image2, AFTER = Image1`) is a
+  **ratified project assumption**, not an S2Looking-author-documented fact. If
+  overturned, every construction/demolition label inverts.
+- Its headline metric is measured on S2Looking's own ground-truth regions, not
+  end-to-end through the LEVIR-CD detector's own region proposals — there is
+  no published end-to-end number.
+- Scores are not calibrated probabilities (ECE 0.0172); "Uncertain" is
+  abstention, not a trained class.
+
+**Environment**
+- Requires all six declared Sentinel-2 bands; RGB-only input is refused, not
+  substituted.
+- Validated only on the Amazon and Southeast Asia; Africa is entirely absent
+  from training data.
+- Scores are not calibrated probabilities.
+- Output is a 10 m grid; reference labels are 30 m-quantized, so boundary
+  precision is limited to about one TMF pixel.
+- Region-level agreement is poor (region F1 0.1136) even where pixel-level
+  agreement is moderate — a detected region is not a reliably identified
+  individual clearing.
+- One dataset version, one training run, no hyperparameter search — a V1
+  research model, not a validated detector.
+
+**Both domains / the product overall**
+- No real-time monitoring — this is paired-image, on-demand analysis.
+- No global operational coverage — both models are geography-specific.
+- No disaster-monitoring capability exists; it is named as planned with no
+  model behind it.
+- Ground area in m² is available only when the input actually carries a valid
+  projected metric georeference and scale — most bundled examples do not, and
+  none of it is invented.
+
+---
+
+## Future work
+
+- Cross-dataset generalization testing for Built Environment (e.g. WHU-CD) and
+  broader regional validation for Environment.
+- An imagery provider (location + date search) to replace manual upload —
+  not implemented; the current input source is the bundled example catalogue
+  or direct upload only.
+- Georeferenced imagery ingestion so ground-area reporting works for more than
+  GeoTIFF uploads.
+- Calibrating the Environment engine's score so it can honestly be reported as
+  a probability.
+- Extending region direction classification to the Environment domain.
+- A validated Disaster-monitoring domain — currently not started.
 
 ---
 
@@ -352,5 +616,3 @@ result contract.
 
 Aryan Goyal (2427030332) and Aryan Tyagi (2427030344)
 B.Tech CSE, Manipal University Jaipur — supervised by Dr. Ajay Kumar
-
-Academic and research use. LEVIR-CD imagery is subject to Google Earth terms.
