@@ -1,0 +1,141 @@
+{
+  "experiment": "phase4b-1b-sixband-baseline",
+  "band_set": "rgb",
+  "bands": [
+    "B02",
+    "B03",
+    "B04"
+  ],
+  "dataset_version": "v24",
+  "dataset_dir": "data\\environment\\dataset_v24",
+  "architecture": {
+    "name": "environment-siamese-unet-3band",
+    "encoder": "resnet34",
+    "in_channels": 3,
+    "bands": [
+      "B02",
+      "B03",
+      "B04"
+    ],
+    "fusion": "conv1x1(concat[|f_before - f_after|, f_before + f_after])",
+    "weight_sharing": "single encoder applied to both dates",
+    "stem_initialisation": {
+      "B02": "B",
+      "B03": "G",
+      "B04": "R"
+    },
+    "stem_scale": 1.0,
+    "stem_scale_rule": "3 / number_of_bands (magnitude normalisation)",
+    "pretrained_layers_reused": [
+      "bn1",
+      "layer1",
+      "layer2",
+      "layer3",
+      "layer4"
+    ],
+    "pretrained_layers_replaced": [
+      "conv1 (3ch -> 3ch, re-initialised)"
+    ],
+    "randomly_initialised": [
+      "fuse blocks",
+      "decoder",
+      "head"
+    ],
+    "imagenet_semantics_claimed_for_nir_swir": false,
+    "parameters": 25142801
+  },
+  "normalisation": {
+    "path": "data\\environment\\characterization_v24_train_bands.json",
+    "sha256": "95e58cc37815f1759e2661ec3fd010bffd0954dd80d0951a32be3ac326d3c9c1",
+    "subset_sha256": "5cb39263ce800f214b81f95ee09145927cd6aec4638cdbe288220e5bf60d2d88",
+    "mean": [
+      0.04413012791877784,
+      0.06321721185877703,
+      0.0564930349856759
+    ],
+    "std": [
+      0.025441759989742286,
+      0.02748462185418511,
+      0.044444973492246354
+    ],
+    "bands": [
+      "B02",
+      "B03",
+      "B04"
+    ],
+    "source": "v24 TRAIN split only (Phase 4B-1A characterization)"
+  },
+  "loss": {
+    "formulation": "0.5 * BCEWithLogits(pos_weight) + 0.5 * (1 - soft Dice)",
+    "w_bce": 0.5,
+    "w_dice": 0.5,
+    "pos_weight": 13.364,
+    "pos_weight_source": "TRAIN pixels only: 12,621,541 neg / 944,411 pos",
+    "effective_number_scheme": "not used (degenerate at pixel scale)"
+  },
+  "optimiser": {
+    "name": "AdamW",
+    "lr": 0.0003,
+    "weight_decay": 0.0001,
+    "schedule": "CosineAnnealingLR(T_max=80)"
+  },
+  "batch_size": 8,
+  "epochs_requested": 80,
+  "epochs_run": 32,
+  "seed": 20260913,
+  "precision": "bfloat16",
+  "augmentation": {
+    "transforms": "dihedral group: rot90 x {0,1,2,3} optionally followed by horizontal flip",
+    "applied_identically_to": [
+      "before",
+      "after",
+      "label",
+      "invalid"
+    ],
+    "date_swap": false,
+    "independent_per_date_geometry": false,
+    "colour_jitter": false,
+    "rationale": "only transforms that cannot manufacture spectral change; anything applied to one date alone would create apparent change that is an artefact of augmentation"
+  },
+  "splits": {
+    "train": {
+      "split": "train",
+      "n": 201,
+      "positive": 92,
+      "negative": 109,
+      "se_asia": 26,
+      "amazon": 175,
+      "augmented": true,
+      "bands": [
+        "B02",
+        "B03",
+        "B04"
+      ]
+    },
+    "val": {
+      "split": "val",
+      "n": 44,
+      "positive": 21,
+      "negative": 23,
+      "se_asia": 10,
+      "amazon": 34,
+      "augmented": false,
+      "bands": [
+        "B02",
+        "B03",
+        "B04"
+      ]
+    },
+    "test": "not read by this script"
+  },
+  "checkpoint_selection": "highest validation best-F1 over the threshold sweep",
+  "threshold_selection": "validation only, after training (see evaluate script)",
+  "best_epoch": 17,
+  "best_val_f1": 0.4724599550238919,
+  "best_val_threshold": 0.8300000000000001,
+  "training_seconds": 94.0,
+  "hardware": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "checkpoint": "outputs\\environment_ablation\\E0_rgb\\environment_best.pt",
+  "checkpoint_sha256": "eb40302d20d0fcc6a33ee96b77c7f94eaec67dad9c351d89a63138818d078747",
+  "generated_utc": "2026-09-14T07:12:42Z"
+}

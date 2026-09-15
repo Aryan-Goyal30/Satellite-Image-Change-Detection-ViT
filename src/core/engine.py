@@ -6,10 +6,16 @@ knowing which neural network is behind it.
 
 Implemented today:
     built_environment   Siamese U-Net (ResNet-34), binary structural change
+                        3-band RGB, LEVIR-CD
+    environment         Spectral Siamese U-Net (ResNet-34), binary forest loss
+                        6-band Sentinel-2 L2A, JRC TMF labels (dataset v24)
 
 Planned, NOT implemented:
-    environmental       vegetation / land cover / water change
     disaster            flood, burn scar, landslide, post-disaster damage
+
+Engines do not share an input contract, and must not be assumed to: each one
+declares what it requires in `metadata.input_spec`, and the environment engine
+rejects imagery that does not carry all six of its bands.
 """
 from __future__ import annotations
 

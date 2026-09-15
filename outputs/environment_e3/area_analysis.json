@@ -1,0 +1,22 @@
+{
+  "E2_10m": {
+    "gt_px": 219429,
+    "pred_px": 257992,
+    "pred_over_gt": 1.1757
+  },
+  "E3_10m": {
+    "gt_px": 219429,
+    "pred_px": 256759,
+    "pred_over_gt": 1.1701
+  },
+  "E2_30m": {
+    "gt_px": 24467,
+    "pred_px": 28047,
+    "pred_over_gt": 1.1463
+  },
+  "E3_30m": {
+    "gt_px": 24467,
+    "pred_px": 30031,
+    "pred_over_gt": 1.2274
+  }
+}

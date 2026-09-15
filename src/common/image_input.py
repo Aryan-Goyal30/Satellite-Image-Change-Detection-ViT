@@ -157,6 +157,42 @@ def to_rgb(img):
     return img if img.mode == "RGB" else img.convert("RGB")
 
 
+def prepare_rgb_pair(before, after, input_spec=None):
+    """Input adapter for RGB domains, used via src/common/pair_input.py.
+
+    Exactly the sequence every application already performed by hand -
+    open_image, validate_pair, to_rgb - collected in one place so that adding a
+    second domain did not mean duplicating it. The calls, their order and their
+    messages are unchanged, so the built-environment path behaves identically.
+
+    `before` / `after` may be paths, file objects or already-open PIL images.
+    """
+    from src.common.pair_input import PreparedPair
+
+    pair = PreparedPair(domain="built_environment")
+    try:
+        before_img = before if isinstance(before, Image.Image) else open_image(before)
+        after_img = after if isinstance(after, Image.Image) else open_image(after)
+    except ValueError as exc:
+        pair.errors.append(str(exc))
+        return pair
+
+    report = validate_pair(before_img, after_img, input_spec)
+    pair.validation = report
+    pair.errors = [i.message for i in report.errors]
+    pair.warnings = [i.message for i in report.warnings]
+    pair.notes = describe_georef(report)
+    pair.georef = report.georef
+    if report.ok:
+        rgb_before = np.array(to_rgb(before_img))
+        rgb_after = np.array(to_rgb(after_img))
+        pair.before, pair.after = rgb_before, rgb_after
+        # For an RGB domain the model input and the display image are the same
+        # array; there is nothing to render differently.
+        pair.preview_before, pair.preview_after = rgb_before, rgb_after
+    return pair
+
+
 def describe_georef(validation) -> str:
     """One-line, honest summary of the geospatial situation, for a UI."""
     info = getattr(validation, "before_raster", None)

@@ -21,9 +21,29 @@ from typing import Optional
 from src import config
 
 
+#: How a pair is stored, so an application knows what it is reading without
+#: sniffing file extensions. RGB_PAIR is the original and stays the default, so
+#: every existing catalogue entry keeps its exact meaning.
+KIND_RGB_PAIR = "rgb_pair"
+KIND_SENTINEL2_SIX_BAND = "sentinel2_six_band"
+
+#: How a ground-truth mask is stored.
+GT_PNG_MASK = "png_mask"
+GT_NPY_MASK = "npy_mask"
+
+
 @dataclass(frozen=True)
 class Example:
-    """One selectable input pair."""
+    """One selectable input pair.
+
+    Fields below `source` were added with schema 1.1 and are all optional, so a
+    1.0 catalogue loads unchanged: `kind` defaults to the RGB pair every 1.0
+    entry was, and the rest stay None.
+
+    `bands`, `gsd_m` and `crs` are recorded only where the source actually
+    declares them. They describe the stored arrays; nothing derives or converts
+    anything from them at load time.
+    """
     id: str
     name: str
     domain: str
@@ -32,6 +52,12 @@ class Example:
     ground_truth: Optional[str] = None
     description: str = ""
     source: str = ""
+    kind: str = KIND_RGB_PAIR
+    ground_truth_kind: Optional[str] = None
+    bands: Optional[tuple] = None    # band order of the stored arrays
+    gsd_m: Optional[float] = None    # metres per pixel, when the source states it
+    crs: Optional[str] = None        # e.g. "EPSG:32720", when the source states it
+    source_sample_id: Optional[str] = None
 
     # --- resolved absolute paths ---
     @property
@@ -55,11 +81,41 @@ class Example:
         """True when both images are actually present on this machine."""
         return os.path.exists(self.before_path) and os.path.exists(self.after_path)
 
+    @property
+    def is_six_band(self) -> bool:
+        return self.kind == KIND_SENTINEL2_SIX_BAND
+
+    @property
+    def georef(self):
+        """A GeoRef when the source declares a real metric scale, else None.
+
+        Built here rather than in an application so no screen invents a ground
+        sample distance. `transform` is deliberately left unset: the examples
+        record a pixel size, not a full geotransform, so CRS centroids stay
+        unavailable rather than being fabricated.
+        """
+        if not self.gsd_m:
+            return None
+        from src.core.types import GeoRef
+        return GeoRef(crs=self.crs, gsd_m=float(self.gsd_m), units="metre")
+
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "domain": self.domain,
-                "before": self.before, "after": self.after,
-                "ground_truth": self.ground_truth,
-                "description": self.description, "source": self.source}
+        d = {"id": self.id, "name": self.name, "domain": self.domain,
+             "before": self.before, "after": self.after,
+             "ground_truth": self.ground_truth,
+             "description": self.description, "source": self.source,
+             "kind": self.kind}
+        if self.ground_truth_kind is not None:
+            d["ground_truth_kind"] = self.ground_truth_kind
+        if self.bands is not None:
+            d["bands"] = list(self.bands)
+        if self.gsd_m is not None:
+            d["gsd_m"] = self.gsd_m
+        if self.crs is not None:
+            d["crs"] = self.crs
+        if self.source_sample_id is not None:
+            d["source_sample_id"] = self.source_sample_id
+        return d
 
 
 def load_catalogue(path: Optional[str] = None) -> list:

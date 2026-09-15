@@ -17,6 +17,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, "data")
 LEVIR_RAW = os.path.join(DATA_DIR, "levir_cd")             # A/ B/ label/ + raw/
 LEVIR_TILES = os.path.join(DATA_DIR, "levir_cd_tiles")     # {train,val,test}/{A,B,label}
+
+# S2Looking (Stage 3B directionality study). Acquisition + label generation
+# only: no production inference reads these paths. Imagery and label rasters
+# live under data/ and are never committed.
+S2LOOKING_RAW = os.path.join(DATA_DIR, "s2looking")        # layout verified after extraction
+S2LOOKING_META = os.path.join(S2LOOKING_RAW, "metadata")   # region_labels.csv, dataset_stats.json
 DEMO_IMAGES = os.path.join(ROOT, "images")                 # bundled sample pairs
 
 # --- bundled example catalogue ----------------------------------------------
@@ -36,6 +42,13 @@ CHECKPOINTS = os.path.join(ROOT, "checkpoints")
 DEFAULT_CHECKPOINT = os.path.join(CHECKPOINTS, "siamese_unet_r34_best.pt")
 DEFAULT_CHECKPOINT_REL = os.path.relpath(DEFAULT_CHECKPOINT, ROOT)
 
+# Direction classifier (Stage 3B). An OPTIONAL capability: the built-environment
+# engine analyses without it and only loads it when direction is requested. The
+# "both" (6-channel BEFORE+AFTER) checkpoint is the only one used in production;
+# the before-only / after-only checkpoints are ablations.
+DIRECTION_CHECKPOINT = os.path.join(CHECKPOINTS, "direction_resnet18_both_best.pt")
+DIRECTION_CHECKPOINT_REL = os.path.relpath(DIRECTION_CHECKPOINT, ROOT)
+
 # --- outputs ----------------------------------------------------------------
 OUTPUTS = os.path.join(ROOT, "outputs")
 RESULTS = os.path.join(OUTPUTS, "results")
@@ -46,6 +59,18 @@ LOGS = os.path.join(ROOT, "logs")
 
 EVALUATION_JSON = os.path.join(RESULTS, "evaluation.json")
 BASELINE_EVALUATION_JSON = os.path.join(RESULTS, "baseline_evaluation.json")
+
+# --- environment domain (Phase 4B) ------------------------------------------
+# The frozen E2 six-band baseline, selected on the v24 validation split. It
+# lives under outputs/ rather than checkpoints/ because that is where the Phase
+# 4B experiment wrote it, and the experiment manifest, training history and
+# evaluation sitting beside it are what make the weights interpretable. Moving
+# the file would break that link to its own provenance.
+ENVIRONMENT_BASELINE_DIR = os.path.join(OUTPUTS, "environment_baseline")
+ENVIRONMENT_CHECKPOINT = os.path.join(ENVIRONMENT_BASELINE_DIR,
+                                      "environment_sixband_best.pt")
+ENVIRONMENT_CHECKPOINT_REL = os.path.relpath(ENVIRONMENT_CHECKPOINT, ROOT)
+ENVIRONMENT_EVALUATION_JSON = os.path.join(ENVIRONMENT_BASELINE_DIR, "evaluation.json")
 
 
 def resolve(path, base=ROOT):

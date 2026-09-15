@@ -14,10 +14,11 @@ from __future__ import annotations
 import importlib
 from typing import Any, Callable, Dict
 
-# Built-in domains. Only the Built Environment engine exists today; the others
-# are intentionally absent rather than stubbed.
+# Built-in domains. Disaster detection is intentionally absent rather than
+# stubbed: there is no model for it.
 _LAZY: Dict[str, str] = {
     "built_environment": "src.domains.built_environment:build_engine",
+    "environment": "src.domains.environment:build_engine",
 }
 
 _FACTORIES: Dict[str, Callable[..., Any]] = {}

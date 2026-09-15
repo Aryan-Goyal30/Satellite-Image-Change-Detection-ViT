@@ -1,0 +1,226 @@
+{
+  "phase": "4B-2 controlled spectral ablation",
+  "dataset_version": "v24",
+  "controlled": {
+    "seed": 20260913,
+    "architecture": "Siamese U-Net, ResNet-34 encoder",
+    "optimiser": "AdamW lr 3e-4 wd 1e-4 CosineAnnealingLR(T_max=80)",
+    "batch_size": 8,
+    "max_epochs": 80,
+    "early_stopping_patience": 15,
+    "loss": "0.5*BCE(pos_weight) + 0.5*(1-soft Dice)",
+    "augmentation": "dihedral, paired across before/after/label/invalid",
+    "checkpoint_rule": "best validation F1",
+    "threshold_rule": "argmax F1 over a 201-point validation sweep",
+    "only_variable": "the set of input bands"
+  },
+  "experiments": [
+    {
+      "experiment": "E0",
+      "bands": "RGB",
+      "n_bands": 3,
+      "parameters": 25142801,
+      "stem_scale": 1.0,
+      "normalisation_subset_sha256": "5cb39263ce800f214b81f95ee09145927cd6aec4638cdbe288220e5bf60d2d88",
+      "pos_weight": 13.364,
+      "epochs_run": 32,
+      "best_epoch": 17,
+      "training_seconds": 94.0,
+      "val_f1": 0.4724599550238919,
+      "threshold": 0.8300000000000001,
+      "test_precision": 0.497964024761515,
+      "test_recall": 0.3577968272197369,
+      "test_f1": 0.4164012586192557,
+      "test_iou": 0.2629461923357729,
+      "test_ap": 0.3421703806450012,
+      "test_pixel_accuracy": 0.9236814325506034,
+      "tp": 78511,
+      "fp": 79153,
+      "fn": 140918,
+      "tn": 2585002,
+      "region_f1": 0.08064516089677999,
+      "region_precision": 0.1499999999985,
+      "region_recall": 0.05514705882332667,
+      "predicted_regions": 100,
+      "ground_truth_regions": 272,
+      "by_region": {
+        "Amazon": {
+          "samples": 37,
+          "positive_samples": 18,
+          "f1": 0.4240038159132646,
+          "iou": 0.2690386060622921,
+          "ap": 0.3646019372011376
+        },
+        "SE Asia": {
+          "samples": 7,
+          "positive_samples": 3,
+          "f1": 0.19188729617534295,
+          "iou": 0.1061257388500711,
+          "ap": 0.1550650055301234
+        }
+      },
+      "checkpoint_sha256": "eb40302d20d0fcc6a33ee96b77c7f94eaec67dad9c351d89a63138818d078747"
+    },
+    {
+      "experiment": "E1",
+      "bands": "RGB+NIR",
+      "n_bands": 4,
+      "parameters": 25145937,
+      "stem_scale": 0.75,
+      "normalisation_subset_sha256": "1ce5d0c90be39cadfb285defc1e7f22071acf7e3a4e48fb83b71888bdc86f5ad",
+      "pos_weight": 13.364,
+      "epochs_run": 25,
+      "best_epoch": 10,
+      "training_seconds": 82.9,
+      "val_f1": 0.4495498973443791,
+      "threshold": 0.905,
+      "test_precision": 0.586309406777657,
+      "test_recall": 0.33974998746747087,
+      "test_f1": 0.4302069923971591,
+      "test_iou": 0.2740533248048926,
+      "test_ap": 0.48649198864201615,
+      "test_pixel_accuracy": 0.9315157803622156,
+      "tp": 74551,
+      "fp": 52602,
+      "fn": 144878,
+      "tn": 2611553,
+      "region_f1": 0.1022727269209065,
+      "region_precision": 0.22499999999718748,
+      "region_recall": 0.066176470587992,
+      "predicted_regions": 80,
+      "ground_truth_regions": 272,
+      "by_region": {
+        "Amazon": {
+          "samples": 37,
+          "positive_samples": 18,
+          "f1": 0.43114644324717133,
+          "iou": 0.2748162452657884,
+          "ap": 0.5043136041009919
+        },
+        "SE Asia": {
+          "samples": 7,
+          "positive_samples": 3,
+          "f1": 0.37638748689720414,
+          "iou": 0.2318210068364964,
+          "ap": 0.3229614326664582
+        }
+      },
+      "checkpoint_sha256": "2e4e04ed3f7e489b126d980201eebac05c0eb0d9df1b5f47b0107d9437ae6e5a"
+    },
+    {
+      "experiment": "E2",
+      "bands": "6-band",
+      "n_bands": 6,
+      "parameters": 25152209,
+      "stem_scale": 0.5,
+      "normalisation_subset_sha256": null,
+      "pos_weight": 13.364,
+      "epochs_run": 46,
+      "best_epoch": 31,
+      "training_seconds": 184.1,
+      "val_f1": 0.4967323329572241,
+      "threshold": 0.91,
+      "test_precision": 0.550497689850846,
+      "test_recall": 0.647243527519149,
+      "test_f1": 0.5949633546971033,
+      "test_iou": 0.42345041845931713,
+      "test_ap": 0.5669915945037549,
+      "test_pixel_accuracy": 0.9329400496049358,
+      "tp": 142024,
+      "fp": 115968,
+      "fn": 77405,
+      "tn": 2548187,
+      "region_f1": 0.1136363632844783,
+      "region_precision": 0.249999999996875,
+      "region_recall": 0.07352941176443556,
+      "predicted_regions": 80,
+      "ground_truth_regions": 272,
+      "by_region": {
+        "Amazon": {
+          "samples": 37,
+          "positive_samples": 18,
+          "f1": 0.5988702726057118,
+          "iou": 0.4274195755082669,
+          "ap": 0.5745542574201997
+        },
+        "SE Asia": {
+          "samples": 7,
+          "positive_samples": 3,
+          "f1": 0.3635675534392317,
+          "iou": 0.2221708294788433,
+          "ap": 0.30506182750166955
+        }
+      },
+      "checkpoint_sha256": "326e8a272c6c4536c3a07ccaabc3feb8ad6905ac0db7e7e67b88ceb98096cc45"
+    }
+  ],
+  "deltas": {
+    "E1-E0": {
+      "test_f1": 0.0138,
+      "test_iou": 0.0111,
+      "test_ap": 0.1443,
+      "test_precision": 0.0883,
+      "test_recall": -0.018,
+      "region_f1": 0.0216,
+      "val_f1": -0.0229
+    },
+    "E2-E1": {
+      "test_f1": 0.1648,
+      "test_iou": 0.1494,
+      "test_ap": 0.0805,
+      "test_precision": -0.0358,
+      "test_recall": 0.3075,
+      "region_f1": 0.0114,
+      "val_f1": 0.0472
+    },
+    "E2-E0": {
+      "test_f1": 0.1786,
+      "test_iou": 0.1605,
+      "test_ap": 0.2248,
+      "test_precision": 0.0525,
+      "test_recall": 0.2894,
+      "region_f1": 0.033,
+      "val_f1": 0.0243
+    }
+  },
+  "qualitative_samples": [
+    {
+      "sample_id": "env_S10_W70_2020_0234",
+      "caption": "largest event (highest positive fraction)",
+      "positive_fraction": 0.657394,
+      "region": "Amazon"
+    },
+    {
+      "sample_id": "env_S10_W60_2020_0165",
+      "caption": "median event",
+      "positive_fraction": 0.09053,
+      "region": "Amazon"
+    },
+    {
+      "sample_id": "env_N0_E110_2020_0004",
+      "caption": "smallest event (lowest positive fraction)",
+      "positive_fraction": 0.006378,
+      "region": "SE Asia"
+    },
+    {
+      "sample_id": "env_N0_E110_2020_0005",
+      "caption": "negative (first by id)",
+      "positive_fraction": 0.0,
+      "region": "SE Asia"
+    },
+    {
+      "sample_id": "env_N0_E110_2019_a001",
+      "caption": "SE Asia, largest positive",
+      "positive_fraction": 0.028641,
+      "region": "SE Asia"
+    },
+    {
+      "sample_id": "env_N0_W60_2020_0034",
+      "caption": "Amazon, lower-quartile event",
+      "positive_fraction": 0.081985,
+      "region": "Amazon"
+    }
+  ],
+  "sample_selection": "frozen dataset metadata only; never model output",
+  "figure": "outputs\\environment_ablation\\ablation_qualitative.png"
+}

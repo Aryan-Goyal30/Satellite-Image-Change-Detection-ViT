@@ -25,7 +25,14 @@ import numpy as np
 # 1.1 adds optional fields only: GeoRef.units / GeoRef.pixel_size and
 # Region.centroid_crs_xy. Every 1.0 field keeps its name and meaning, so a 1.0
 # consumer reading a 1.1 result sees exactly what it saw before.
-SCHEMA_VERSION = "1.1"
+#
+# 1.2 continues the same additive pattern: Region.direction and
+# Region.direction_score, populated only when direction classification is
+# explicitly requested. Every 1.0/1.1 field keeps its name and meaning, and
+# both new fields are omitted from to_dict() when absent, so an older consumer
+# sees exactly what it saw before. The version is bumped rather than reused so
+# a consumer can tell from the payload whether direction may be present.
+SCHEMA_VERSION = "1.2"
 
 
 # --------------------------------------------------------------------- geo
@@ -113,13 +120,25 @@ class Layer:
 class Region:
     """One connected component of a layer's change mask.
 
-    An area of detected change - not an identified building, and with no
-    direction (construction vs demolition) attached.
+    An area of detected change - not an identified building.
 
     `confidence` is the mean predicted change probability over the region's
-    pixels; see src/common/regions.py for the exact definition. `area_m2` and
-    `centroid_crs_xy` are populated only when a GeoRef with a metric scale /
-    transform is available.
+    pixels, and belongs exclusively to the DETECTOR; see src/common/regions.py
+    for the exact definition. `area_m2` and `centroid_crs_xy` are populated only
+    when a GeoRef with a metric scale / transform is available.
+
+    Direction (schema 1.2, optional)
+    --------------------------------
+    `direction` is one of "construction", "demolition" or "uncertain", and
+    `direction_score` is the direction classifier's score for the predicted
+    class. Both stay None unless direction classification was explicitly
+    requested, and both belong exclusively to the DIRECTION CLASSIFIER - a
+    different model from the detector.
+
+    `direction_score` is NOT a calibrated probability: the classifier is
+    measurably over-confident (see the direction model card). "uncertain" is an
+    abstention below the operating threshold, not a trained class - no region is
+    ever labelled "uncertain" in any training data.
     """
     id: int
     area_px: int
@@ -129,6 +148,8 @@ class Region:
     layer: Optional[str] = None
     area_m2: Optional[float] = None
     centroid_crs_xy: Optional[Sequence[float]] = None
+    direction: Optional[str] = None
+    direction_score: Optional[float] = None
 
     def to_dict(self) -> dict:
         d = {"id": self.id, "area_px": self.area_px,
@@ -142,6 +163,10 @@ class Region:
             d["area_m2"] = self.area_m2
         if self.centroid_crs_xy is not None:
             d["centroid_crs_xy"] = list(self.centroid_crs_xy)
+        if self.direction is not None:
+            d["direction"] = self.direction
+        if self.direction_score is not None:
+            d["direction_score"] = self.direction_score
         return d
 
 
@@ -189,6 +214,19 @@ class OperatingEnvelope:
 
 @dataclass
 class Provenance:
+    """Who produced this result, from what, and under which decision rule.
+
+    `dataset_version` and `score_calibrated` are optional and omitted from
+    to_dict() when unset, so a consumer of an engine that does not declare them
+    sees exactly the payload it saw before they existed. That is why
+    SCHEMA_VERSION is NOT bumped for them: unlike Region.direction they add no
+    new capability and change no existing engine's output.
+
+    `score_calibrated` states whether a layer's scores may be read as
+    probabilities. False means the threshold is an operating point chosen on a
+    validation split and the scores between 0 and 1 are NOT calibrated
+    likelihoods. None means the engine has not made a claim either way.
+    """
     model: str
     dataset: str
     threshold: float
@@ -197,14 +235,21 @@ class Provenance:
     weights_hash: Optional[str] = None          # sha256 of the actual checkpoint
     evaluation_protocol: Optional[str] = None
     operating_envelope: Optional[OperatingEnvelope] = None
+    dataset_version: Optional[str] = None
+    score_calibrated: Optional[bool] = None
 
     def to_dict(self) -> dict:
-        return {"model": self.model, "version": self.version, "task": self.task,
-                "dataset": self.dataset, "threshold": self.threshold,
-                "weights_hash": self.weights_hash,
-                "evaluation_protocol": self.evaluation_protocol,
-                "operating_envelope": (self.operating_envelope.to_dict()
-                                       if self.operating_envelope else None)}
+        d = {"model": self.model, "version": self.version, "task": self.task,
+             "dataset": self.dataset, "threshold": self.threshold,
+             "weights_hash": self.weights_hash,
+             "evaluation_protocol": self.evaluation_protocol,
+             "operating_envelope": (self.operating_envelope.to_dict()
+                                    if self.operating_envelope else None)}
+        if self.dataset_version is not None:
+            d["dataset_version"] = self.dataset_version
+        if self.score_calibrated is not None:
+            d["score_calibrated"] = self.score_calibrated
+        return d
 
 
 # ------------------------------------------------------------------ result
